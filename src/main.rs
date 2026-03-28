@@ -27,26 +27,30 @@ struct GameResource {
 struct CardInHand;
 
 fn main() {
+    eprintln!("[MAIN] Step 1: calling setup_logging()...");
     logging::setup_logging();
+    eprintln!("[MAIN] Step 2: setup_logging done");
 
     // Set up panic handler to catch crashes and send to Discord
     std::panic::set_hook(Box::new(|panic_info| {
         let msg = format!("Application panic: {}", panic_info);
         logging::log_error(&msg);
     }));
+    eprintln!("[MAIN] Step 3: panic hook set");
 
-    logging::log_info("Starting game initialization...");
-
+    eprintln!("[MAIN] Step 4: calling get_starter_cards()...");
     let cards = get_starter_cards();
-    logging::log_info(&format!("Loaded {} starter cards", cards.len()));
+    eprintln!("[MAIN] Step 5: got {} cards", cards.len());
 
+    eprintln!("[MAIN] Step 6: creating GameState...");
     let game_state = GameState::new(cards);
-    logging::log_info("GameState created");
+    eprintln!("[MAIN] Step 7: GameState created");
 
+    eprintln!("[MAIN] Step 8: entering catch_unwind...");
     let app_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        logging::log_info("Creating Bevy App...");
-        eprintln!("[DEBUG] About to create App::new()...");
+        eprintln!("[MAIN] Step 9: inside catch_unwind, creating App...");
         App::new()
+            .add_plugins(DefaultPlugins)
             .insert_resource(GameResource {
                 state: game_state,
             })
@@ -60,6 +64,7 @@ fn main() {
             ))
             .run();
     }));
+    eprintln!("[MAIN] Step 10: App::run() returned");
 
     if app_result.is_err() {
         logging::log_error("App crashed - check .logs/dwarf_the_world.log");
