@@ -3,7 +3,7 @@ mod game;
 mod rendering;
 
 use bevy::prelude::*;
-use game::{Card, CardType, EntryType, Phase};
+use game::{GameState, Phase, CardType, EntryPoint};
 use rendering::{
     CardComponent, EntryPointComponent, EndTurnButton,
     DayCounter, DarknessIndicator, PhaseIndicator, ResourcesDisplay,
@@ -19,7 +19,7 @@ use data::get_starter_cards;
 
 #[derive(Resource)]
 struct GameResource {
-    state: game::GameState,
+    state: GameState,
 }
 
 #[derive(Component)]
@@ -27,7 +27,7 @@ struct CardInHand;
 
 fn main() {
     let cards = get_starter_cards();
-    let game_state = game::GameState::new(cards);
+    let game_state = GameState::new(cards);
 
     App::new()
         .add_plugins(DefaultPlugins)
@@ -49,30 +49,26 @@ fn setup(
     mut commands: Commands,
     mut game_res: ResMut<GameResource>,
 ) {
-    // Camera
     commands.spawn(Camera2dBundle::default());
 
-    // Dark atmospheric background
     commands.spawn(NodeBundle {
         style: Style {
             width: Val::Percent(100.0),
             height: Val::Percent(100.0),
             ..default()
         },
-        background_color: BackgroundColor(Color::rgb(0.05, 0.03, 0.02)),  // Cave darkness
+        background_color: BackgroundColor(Color::rgb(0.05, 0.03, 0.02)),
         ..default()
     });
 
-    // Top bar with resources
     create_top_bar(&mut commands);
 
-    // World map - 8 entry points in a grid
-    let entry_width = 180.0;
-    let entry_height = 130.0;
-    let start_x = -380.0;
-    let start_y = 80.0;
-    let gap_x = 200.0;
-    let gap_y = 150.0;
+    let entry_width = 175.0;
+    let entry_height = 125.0;
+    let start_x = -370.0;
+    let start_y = 70.0;
+    let gap_x = 190.0;
+    let gap_y = 145.0;
     let cols = 4;
 
     for (i, entry) in game_res.state.entry_points.iter().enumerate() {
@@ -83,17 +79,12 @@ fn setup(
         create_entry_point_ui(&mut commands, entry, Vec3::new(x, y, 0.0), entry_width, entry_height);
     }
 
-    // Hand area at bottom
     create_hand_area(&mut commands);
-
-    // End turn button
     create_end_turn_button(&mut commands);
 
-    // Initial draw - start in Day phase
     game_res.state.draw_cards(3);
     game_res.state.phase = Phase::Day;
 
-    // Spawn initial hand
     spawn_hand(&mut commands, &mut game_res);
 }
 
@@ -135,10 +126,12 @@ fn handle_entry_click(
 ) {
     for (entry_comp, interaction) in entry_query.iter() {
         if *interaction == Interaction::Pressed {
+            let entry_id = entry_comp.entry_id;
             if let Some(ref card) = game_res.state.selected_card {
-                game_res.state.selected_entry = Some(entry_comp.entry_id);
                 let card_clone = card.clone();
-                game_res.state.play_card(&card_clone, entry_comp.entry_id);
+                if game_res.state.play_card(&card_clone, entry_id) {
+                    // Card was played successfully
+                }
             }
         }
     }
@@ -150,13 +143,8 @@ fn handle_end_turn(
 ) {
     for interaction in button_query.iter() {
         if *interaction == Interaction::Pressed {
-            // Collect resources
             game_res.state.collect_resources();
-
-            // Advance day
             game_res.state.advance_day();
-
-            // Draw new hand
             game_res.state.draw_cards(3);
             game_res.state.phase = Phase::Day;
         }
