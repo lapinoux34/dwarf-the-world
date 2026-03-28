@@ -78,7 +78,17 @@ pub fn create_card_ui(
         },
     )).id();
 
-    commands.entity(card_entity).insert(Transform::from_translation(position).with_scale(scale));
+    // Position cards using Style for UI positioning
+    // position.x = world X (center-origin), position.y = world Y (center-origin)
+    // For 1280x720 screen: screen_left = x + 640, screen_bottom = 360 - y
+    commands.entity(card_entity).insert(
+        Style {
+            position_type: PositionType::Absolute,
+            left: Val::Px(position.x + 640.0),
+            bottom: Val::Px(360.0 - position.y),
+            ..default()
+        }
+    );
 
     // Card name
     let name_entity = commands.spawn(

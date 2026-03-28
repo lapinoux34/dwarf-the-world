@@ -58,6 +58,9 @@ pub fn create_entry_point_ui(
                 border: UiRect::all(Val::Px(3.0)),
                 flex_direction: FlexDirection::Column,
                 padding: UiRect::all(Val::Px(5.0)),
+                position_type: PositionType::Absolute,
+                left: Val::Px(position.x + 640.0),  // center-origin world → screen edge
+                bottom: Val::Px(360.0 - position.y), // center-origin world → screen edge
                 ..default()
             },
             background_color: BackgroundColor(color),
@@ -66,7 +69,6 @@ pub fn create_entry_point_ui(
         },
     )).id();
 
-    commands.entity(entry_entity).insert(Transform::from_translation(position));
 
     // Entry name
     let name_entity = commands.spawn((
