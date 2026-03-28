@@ -75,7 +75,7 @@ fn main() {
             ))
             .run();
 
-        logging::log_info("App::run() completed normally");
+        logging::log_error("WINDOW DID NOT APPEAR - App::run() returned but no window was shown. GPU/driver crash or Bevy initialization failure.");
         0
     }).unwrap_or_else(|_| {
         logging::log_error("Process panicked before App::run()");
