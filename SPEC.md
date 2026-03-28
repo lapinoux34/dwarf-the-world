@@ -1,14 +1,14 @@
-# Dwarf the World — Kingdom Conquest Game
+# Dwarf the World — Phase 2: Kingdom Conquest Game
 
 ## 1. Project Overview
 
 **Type:** World/Region Control Game with Deck-Building Mechanics
-**Engine:** Rust + Bevy
+**Engine:** Rust + Bevy 0.13
 **Theme:** Tolkien / Lord of the Rings Dwarf Kingdom Management
 **Inspiration:** Slay the Spire meets Civilization meets Dwarf Fortress world map
-**Goal:** Survive 300 days by managing your dwarf kingdom across multiple strategic entry points
+**Goal:** Survive 300 days by managing your dwarf kingdom across 10 strategic zones
 
-You control a **Dwarf Kingdom/Region** with **8+ strategic entry points** on the world map. Deploy cards to expand territory, gather resources, defend against threats, and survive until Day 300 when the Balrog awakens.
+You control a **Dwarf Kingdom/Region** with **10 strategic entry points** on the world map. Deploy cards to expand territory, gather resources, defend against threats, and survive until Day 300 when the Balrog awakens.
 
 ---
 
@@ -27,173 +27,133 @@ You control a **Dwarf Kingdom/Region** with **8+ strategic entry points** on the
 ### Card Art Style
 Gritty fantasy realism. AI prompts: "Lord of the Rings dwarf warrior detailed fantasy art", "Moria goblin dark fantasy illustration"
 
----
-
-## 3. World Map & Entry Points
-
-The world map shows your **Dwarf Kingdom** with **8 strategic entry points**. Each entry point is a zone where you play cards for different strategic purposes.
-
-### Entry Points
-
-| # | Name | Type | Purpose | Max Cards |
-|---|------|------|---------|-----------|
-| 1 | **Dale City Gates** | Trade | Commerce, diplomacy, allies | 6 |
-| 2 | **Erebor Treasury** | Wealth | Gold generation, defense | 5 |
-| 3 | **Moria Mines** | Resource | Ore mining, mithril gathering | 6 |
-| 4 | **Dale Marketplace** | Supply | Food, beer, provisions | 5 |
-| 5 | **Mountain Pass** | Military | Defense, combat, wall building | 6 |
-| 6 | **River Dock** | Trade | River trade,外来 allies | 4 |
-| 7 | **Dwarven Forge** | Production | Weapon crafting, upgrades | 5 |
-| 8 | **Tavern Gate** | Recruitment | Mercenaries, heroes, quests | 5 |
-
-### Entry Point Mechanics
-- Each entry point has a **type** (Trade, Military, Resource, etc.)
-- **Card synergies** activate based on entry point type
-- Cards placed generate **type-specific bonuses**
-- Entry points can be **upgraded** by placing matching cards
-- Enemies attack specific entry points during events
+### Day/Night Visual Transition
+- Days 1-100: Bright, warm tones (0.0-0.3 darkness)
+- Days 101-200: Shadows grow (0.3-0.6 darkness)
+- Days 201-299: Dark times (0.6-0.9 darkness)
+- Day 300: Full darkness - THE BALROG AWAKENS (1.0 darkness)
 
 ---
 
-## 4. Card System
+## 3. World Map & Zones
+
+The world map shows your **Dwarf Kingdom** with **10 strategic zones**. Each zone is an entry point where you play cards for different strategic purposes.
+
+### World Zones
+
+| # | Name | Type | Effect | Max Cards |
+|---|------|------|--------|-----------|
+| 1 | **Dale City Gates** | Trade | +1 gold per card played here | 6 |
+| 2 | **Erebor Treasury** | Wealth | +1 gold per dwarf stationed here | 5 |
+| 3 | **Moria Mines** | Resource | +1 ore per card played here | 6 |
+| 4 | **Dale Marketplace** | Supply | +1 beer/turn if 3+ cards here | 5 |
+| 5 | **Dale Farmlands** | Supply | Prevents beer shortage events | 4 |
+| 6 | **Mountain Pass** | Military | +2 defense to all dwarves here | 6 |
+| 7 | **River Dock** | Trade | Draw +1 card when placing a card here | 4 |
+| 8 | **Dwarven Forge** | Production | +1 attack to dwarves crafted here | 5 |
+| 9 | **Tavern Gate** | Recruitment | Chance for free hero card | 5 |
+| 10 | **Mirkwood Border** | Danger | Monsters stronger but drop more loot | 5 |
+
+### Zone Effects & Synergies
+
+**Zone bonuses when specific card combinations are present:**
+- 3+ miners in Moria Mines → +2 ore bonus
+- 2+ smiths in Forge → dwarves get +1 attack
+- Tavern + Marketplace → beer production doubled
+- 5+ defenders at Mountain Pass → fortress becomes impenetrable
+
+---
+
+## 4. Card System (50 Cards)
 
 ### Card Types
 
-| Type | Purpose | Examples |
-|------|---------|----------|
-| **Settler** | Establish presence, claim territory | Dwarf settler, Pioneer clan |
-| **Builder** | Construct buildings, structures | Stone mason, Architect |
-| **Defender** | Protect entry points, walls | Warrior, Archer, Wall |
-| **Resource** | Generate gold, ore, food, beer | Miner, Farmer, Merchant |
-| **Hero** | Powerful unique dwarves | Gimli, Thorin, Gloin |
-| **Ally** | Non-dwarf helpers | Dale men, Rangers, Elves |
-| **Spell** | Magic effects, buffs | Rune magic, Blessing |
-| **Monster** | Enemy cards to fight | Goblin, Orc, Troll |
+| Type | Count | Examples |
+|------|-------|----------|
+| **Settler** | 5 | Dwarf Settler, Pioneer Clan, Iron Hill Settler |
+| **Builder** | 5 | Stone Mason, Master Architect, Mine Engineer |
+| **Defender** | 5 | Militia, Shield Bearer, Elite Guardian |
+| **Resource** | 8 | Miner, Goldsmith, Brewer, Farmer, Rune Master |
+| **Hero** | 7 | Thorin, Gimli, Gloin, Balin, Dwalin, Bombur, Bofur |
+| **Ally** | 4 | Dale Man-at-Arms, Ranger, Elven Scout |
+| **Spell** | 4 | Rune of Protection, Battle Cry, Earthquake |
+| **Monster** | 12 | Goblin Scout, Orc Warrior, Cave Troll, Nazgul, Balrog |
 
 ### Card Structure
 ```
 - id: u32
 - name: String
 - card_type: CardType
-- cost: Resources          # What it costs to play
-- effect: CardEffect        # What it does
-- entry_type: EntryType    # Best entry point type
-- art_prompt: String        # AI art generation
+- cost: resourceCost (gold, ore, beer, food, mithril, runes)
+- effect: Option<CardEffect>
+- entry_type: ZoneType (best zone for this card)
+- art_prompt: String (AI art generation prompt)
 - faction: Option<DwarfFaction>
-- tier: u32                 # 1-5 (common to legendary)
+- tier: u32 (1-5, common to legendary)
+- attack: Option<u32>
+- defense: Option<u32>
 ```
 
-### Sample Cards
-
-**SETTLERS:**
-| Name | Cost | Effect | Entry Type |
-|------|------|--------|------------|
-| Dwarf Settler | 2 Gold | Place settler marker | Any |
-| Pioneer Clan | 3 Gold, 1 Ore | Settle + gain 1 resource | Resource |
-| Iron Hill Settler | 4 Gold | Strong settler, +2 defense | Military |
-
-**BUILDERS:**
-| Name | Cost | Effect | Entry Type |
-|------|------|--------|------------|
-| Stone Mason | 2 Ore | Build structure | Resource |
-| Master Architect | 4 Gold, 2 Ore | Build + upgrade existing | Production |
-| Mine Engineer | 3 Ore | Build mine shaft | Mining |
-
-**DEFENDERS:**
-| Name | Cost | Effect | Entry Type |
-|------|------|--------|------------|
-| Militia | 1 Gold | Basic defender | Military |
-| Shield Bearer | 2 Gold, 1 Ore | Strong defender | Military |
-| Elite Guardian | 5 Gold | Powerful defender | Treasury |
-
-**RESOURCE CARDS:**
-| Name | Cost | Effect | Entry Type |
-|------|------|--------|------------|
-| Miner | 1 Gold | Generate 2 Ore/turn | Mining |
-| Goldsmith | 2 Ore | Generate 3 Gold/turn | Treasury |
-| Brewer | 1 Gold | Generate 2 Beer/turn | Supply |
-| Farmer | 1 Gold | Generate 2 Food/turn | Supply |
-
-**HEROES:**
-| Name | Cost | Effect | Entry Type |
-|------|------|--------|------------|
-| Gimli | 6 Gold | Elite warrior, +3 to all adjacent defenders | Military |
-| Thorin Oakenshield | 8 Gold | King, +2 to all entry points | Treasury |
-| Gloin | 4 Gold | Smith, can upgrade defenders | Production |
-| Balin | 3 Gold | Elder, heal adjacent cards | Any |
-
-**MONSTERS (Enemy Cards):**
-| Name | Threat | Effect | Entry Point |
-|------|--------|--------|-------------|
-| Goblin Scout | Low | Steal 1 resource | Any |
-| Orc Raid | Medium | Attack defender, destroy weakest | Military |
-| Warg Riders | Medium | Fast attack, bypass walls | Trade |
-| Cave Troll | High | Heavy damage to defenses | Mining |
-| Nazgul Sighting | High | Terror, weaken all defenders | All |
-| Dragon Sighting | Epic | Major threat to Treasury | Treasury |
-| The Balrog | BOSS | Endgame Day 300, all stats | All |
+### Card Tiers
+- **★ Tier 1 (Common):** Basic cards, 1-2 gold cost
+- **★★ Tier 2 (Uncommon):** Improved effects, 2-3 gold cost
+- **★★★ Tier 3 (Rare):** Strong effects, 3-5 gold cost
+- **★★★★ Tier 4 (Epic):** Powerful unique dwarves, 4-6 gold cost
+- **★★★★★ Tier 5 (Legendary):** Hero cards, 6-8 gold cost
 
 ---
 
 ## 5. Resource Economy
 
-Resources are generated by cards placed at entry points. Each turn, resources are collected based on deployed cards.
-
 | Resource | Icon | Purpose | Generated By |
 |----------|------|---------|-------------|
-| **Gold** | 💰 | Currency, playing cards | Goldsmith, Trade |
-| **Ore** | ⚒️ | Building, upgrades | Miner, Mine |
-| **Beer** | 🍺 | Dwarf morale, hero recruitment | Brewer, Tavern |
-| **Food** | 🍞 | Feed settlers, prevent starvation | Farmer, Marketplace |
+| **Gold** | 💰 | Currency, playing cards | Goldsmith, Trade zones |
+| **Ore** | ⚒️ | Building, upgrades | Miner, Mine zones |
+| **Beer** | 🍺 | Dwarf morale, recruitment | Brewer, Tavern |
+| **Food** | 🍞 | Feed dwarves, prevent starvation | Farmer, Farmlands |
 | **Mithril** | 💎 | Rare, powerful upgrades | Deep mining |
-| **Runes** | 🔮 | Magic, spells, special effects | Rune master |
-
-### Resource Costs
-Cards cost combinations of resources to play. Higher tier cards cost more.
+| **Runes** | 🔮 | Magic, spells | Rune master |
 
 ---
 
 ## 6. Day/Night Cycle & Events
 
 ### Day Progression (Day 1-300)
-- Each day has: **Dawn → Day → Dusk → Night** phases
-- Resources collected each dawn
-- Events trigger at dusk
-- Night brings darker skies and increased danger
-
-### Darkness Level (0.0 - 1.0)
-- **Days 1-100:** 0.0-0.3 (Bright, safe)
-- **Days 101-200:** 0.3-0.6 (Shadows grow)
-- **Days 201-299:** 0.6-0.9 (Dark times)
-- **Day 300:** 1.0 (The Balrog awakens - FINAL BATTLE)
+- **Dawn** → Resources gathered from all zones
+- **Day** → Play cards from hand to zones
+- **Dusk** → Random event revealed
+- **Night** → Combat resolution if event was attack
+- **EndTurn** → Advance to next day
 
 ### Random Events
-Events occur at **specific entry points** based on darkness level.
 
-**Common Events (Days 1-100):**
-- Goblin raid (Mining)
-- Merchant caravan (Trade)
-- Festival (Supply)
+**Days 1-100 (Common):**
+- Goblin Raid → Target: Mining zone
+- Merchant Caravan → Reward: +3 gold, +1 beer
+- Ore Vein Discovery → Reward: +4 ore, +1 mithril
+- Goblin Scouts → Minor threat
 
-**Uncommon Events (Days 101-200):**
-- Orc ambush (Military)
-- Warg attack (Trade routes)
-- Dragon sighting (Treasury)
+**Days 101-200 (Uncommon):**
+- Orc Ambush → Target: Military zone
+- Festival Day → Reward: +3 beer
+- Warg Attack → Target: Trade routes
+- Troll Emergence → Target: Mountain Pass
+- Dragon Sighting → Target: Treasury
 
-**Rare Events (Days 201-299):**
-- Nazgul flyover (All entry points)
-- Troll emergence (Mining)
-- Shadow spreading (All)
+**Days 201-299 (Rare):**
+- Nazgul Terror → All defenders weakened
+- Shadow Spreading → All zones attacked
+- Troll Attack → Heavy damage
 
-**BOSS Event (Day 300):**
+**Day 300 (BOSS):**
 - **THE BALROG OF MORIA AWAKENS**
-- All entry points under attack
+- All zones become threatened
 - Must defeat to win the game
 
 ### Event Resolution
-1. Event card appears at specific entry point
-2. Player has option to defend or sacrifice entry point
-3. If undefended, monsters deal damage
+1. Event card appears at specific zone
+2. Player defends or zone takes damage
+3. If undefended, monsters deal damage to cards
 4. If defended, combat resolution occurs
 5. Surviving cards remain, dead cards go to discard
 
@@ -203,72 +163,74 @@ Events occur at **specific entry points** based on darkness level.
 
 ### Turn Structure
 1. **DAWN PHASE**: Collect resources from deployed cards
-2. **DAY PHASE**: Play cards from hand to entry points
-3. **DUSK PHASE**: Random event revealed at entry point
-4. **NIGHT PHASE**: Combat resolution if event was attack
-5. **END TURN**: Discard excess cards, advance day
+2. **DAY PHASE**: Play cards from hand to zones
+3. **DUSK PHASE**: Random event revealed
+4. **NIGHT PHASE**: Combat resolution if threatened
+5. **END TURN**: Discard excess, advance day
 
 ### Playing Cards
-1. Click a card in your hand (shows cost and entry type match)
-2. Click an entry point on the world map
-3. If resources sufficient and entry has space, card is placed
+1. Click a card in your hand
+2. Click a zone on the world map
+3. If resources sufficient and zone has space, card is placed
 4. Card effect triggers immediately or passively each turn
 
 ### Winning & Losing
 - **WIN:** Survive to Day 300 and defeat the Balrog
-- **LOSE:** Kingdom destroyed (all entry points lost) or player reaches 0 HP
+- **LOSE:** Kingdom destroyed (all zones lost) or player reaches 0 HP
 
 ---
 
-## 8. Entry Point Synergies
-
-When cards match the entry point type, they receive bonuses:
-
-| Entry Type | Matching Cards Get |
-|------------|-------------------|
-| Trade | +1 Gold per turn |
-| Wealth | +2 Gold per turn |
-| Resource | +1 Ore per turn |
-| Supply | +1 Food per turn |
-| Military | +1 Defense to all |
-| Production | Can upgrade cards |
-| Recruitment | Chance for bonus card |
-
-### Building Upgrades
-Cards at Production entry points can be upgraded:
-- **Level 1:** Base card
-- **Level 2:** +1 stat, costs 2 Ore
-- **Level 3:** +2 stats, costs 4 Ore, 1 Mithril
-- **Level 4:** +3 stats, costs 6 Ore, 2 Mithril
-
----
-
-## 9. Architecture
+## 8. Architecture
 
 ```
 src/
-  main.rs              # Bevy app entry
+  main.rs              # Bevy app entry, game loop
   game/
-    mod.rs
-    state.rs           # GameState, DayCounter, Phase
+    mod.rs             # Module exports
     card.rs            # Card, CardType, CardEffect, Resources
-    entry_point.rs     # EntryPoint, EntryType
-    kingdom.rs         # Kingdom management, entry point states
+    zone.rs            # WorldZone, ZoneType, ZoneEffect (NEW)
+    entry_point.rs     # EntryPoint (legacy compat)
+    state.rs           # GameState, Phase, day/night cycle
     event.rs           # Random events, event deck
     combat.rs          # Combat resolution
-    economy.rs         # Resource generation, costs
   data/
-    mod.rs
-    cards.rs           # CARD_REGISTRY — 50+ cards
-    entries.rs         # ENTRY_POINT_REGISTRY — 8 entry points
-    events.rs          # EVENT_REGISTRY — random events
+    mod.rs             # Module exports
+    cards.rs           # get_starter_cards() - 50 cards
   rendering/
-    mod.rs
-    world_map.rs       # World map UI, entry point rendering
-    cards.rs           # Card UI
+    mod.rs             # Module exports, components
+    world_map.rs       # World map rendering (NEW)
+    entry_points.rs    # Zone UI rendering
+    cards.rs           # Card UI rendering
     ui.rs              # Top bar, resources, buttons
-    effects.rs         # Day/night visuals, event overlays
 ```
+
+---
+
+## 9. Phase 2 Features Implemented
+
+### ✅ World Map System
+- 10 strategic zones with unique effects
+- Zone type color coding and borders
+- Zone synergies that activate based on card combinations
+- Threat indicators for endangered zones
+
+### ✅ Card Expansion (50 cards)
+- 5 Settlers, 5 Builders, 5 Defenders, 8 Resource cards
+- 7 Heroes (Thorin, Gimli, Gloin, Balin, Dwalin, Bombur, Bofur)
+- 4 Allies, 4 Spells, 12 Monsters (including the Balrog)
+
+### ✅ Day/Event System
+- 4-phase day cycle (Dawn, Day, Dusk, Night)
+- Darkness level progression (0.0 to 1.0 over 300 days)
+- Random events based on day and darkness level
+- Day 300 = Balrog awakening final boss
+
+### ✅ Visual Polish
+- Beautiful LOTR-themed color palette
+- Zone-specific colors and effects
+- Card tier indicators (stars)
+- Threat warning system
+- Day/night darkness indicator
 
 ---
 
@@ -281,31 +243,3 @@ rand = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ```
-
----
-
-## 11. MVP Scope
-
-**Phase 1 (Current):**
-- 8 entry points on world map
-- 30 starter cards (mix of all types)
-- Basic resource economy
-- Day/night cycle with events
-- Card placement on entry points
-- Simple combat/defense system
-
-**Phase 2:**
-- Card animations
-- Sound effects
-- Event deck with variety
-- Upgrade system
-
-**Phase 3:**
-- Deck builder UI
-- More cards
-- Save/load
-
-**Phase 4:**
-- Full 300 cards
-- Balrog boss fight
-- Victory/defeat conditions

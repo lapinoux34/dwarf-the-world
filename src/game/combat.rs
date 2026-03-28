@@ -2,81 +2,66 @@ use super::card::Card;
 
 #[derive(Debug, Clone)]
 pub struct CombatResult {
-    pub card: Card,
+    pub card_id: u32,
+    pub damage_dealt: u32,
     pub damage_taken: u32,
     pub destroyed: bool,
 }
 
-pub fn resolve_combat_on_location(
-    dwarves: &mut Vec<Card>,
-    monsters: &mut Vec<Card>,
+pub fn resolve_combat(
+    attackers: &[Card],
+    defenders: &mut [Card],
 ) -> (Vec<CombatResult>, Vec<CombatResult>) {
-    let mut dwarf_results = Vec::new();
-    let mut monster_results = Vec::new();
+    let mut attacker_results = Vec::new();
+    let mut defender_results = Vec::new();
 
-    // Pair dwarves with monsters (simple: first dwarf vs first monster, etc.)
-    let mut dwarf_idx = 0;
-    let mut monster_idx = 0;
+    let mut defender_idx = 0;
 
-    while dwarf_idx < dwarves.len() && monster_idx < monsters.len() {
-        let dwarf = &dwarves[dwarf_idx];
-        let monster = &mut monsters[monster_idx];
+    for attacker in attackers {
+        if defender_idx >= defenders.len() {
+            break;
+        }
 
-        let dwarf_attack = dwarf.get_attack();
-        let monster_attack = monster.get_attack();
+        let defender = &mut defenders[defender_idx];
 
-        let monster_defense = monster.get_defense();
-        let dwarf_defense = dwarf.get_defense();
+        let attack_power = attacker.attack.unwrap_or(0);
+        let defense_power = defender.defense.unwrap_or(0);
 
-        // Dwarf attacks monster
-        let dmg_to_monster = dwarf_attack.saturating_sub(monster_defense);
-        let current_hp = monster.get_defense();
-        let new_hp = current_hp.saturating_sub(dmg_to_monster);
-        monster.defense = Some(new_hp);
+        let damage_to_defender = attack_power.saturating_sub(defense_power);
+        let damage_to_attacker = defense_power.saturating_sub(attack_power);
 
-        // Monster attacks dwarf
-        let dmg_to_dwarf = monster_attack.saturating_sub(dwarf_defense);
-        let dwarf_hp = dwarf.get_defense();
-        let new_dwarf_hp = dwarf_hp.saturating_sub(dmg_to_dwarf);
+        defender.defense = Some(defense_power.saturating_sub(damage_to_defender));
 
-        // Update dwarf defense (as HP)
-        let mut updated_dwarf = dwarves[dwarf_idx].clone();
-        updated_dwarf.defense = Some(new_dwarf_hp);
-
-        monster_results.push(CombatResult {
-            card: monsters[monster_idx].clone(),
-            damage_taken: dmg_to_monster,
-            destroyed: new_hp == 0,
+        defender_results.push(CombatResult {
+            card_id: defender.id,
+            damage_dealt: attack_power,
+            damage_taken: damage_to_attacker,
+            destroyed: defender.defense.unwrap_or(0) == 0,
         });
 
-        dwarf_results.push(CombatResult {
-            card: updated_dwarf.clone(),
-            damage_taken: dmg_to_dwarf,
-            destroyed: new_dwarf_hp == 0,
+        attacker_results.push(CombatResult {
+            card_id: attacker.id,
+            damage_dealt: 0,
+            damage_taken: damage_to_attacker,
+            destroyed: false,
         });
 
-        dwarves[dwarf_idx] = updated_dwarf;
-
-        dwarf_idx += 1;
-        monster_idx += 1;
+        defender_idx += 1;
     }
 
-    // Leftover dwarves attack base (nothing in MVP)
-    // Leftover monsters attack base (nothing in MVP)
-
-    (dwarf_results, monster_results)
+    (attacker_results, defender_results)
 }
 
 pub fn apply_combat_results(
-    dwarves: &mut Vec<Card>,
-    monsters: &mut Vec<Card>,
-    dead_dwarves: &[CombatResult],
-    dead_monsters: &[CombatResult],
-) {
-    // Remove destroyed cards
-    let dead_dwarf_ids: Vec<u32> = dead_dwarves.iter().filter(|r| r.destroyed).map(|r| r.card.id).collect();
-    let dead_monster_ids: Vec<u32> = dead_monsters.iter().filter(|r| r.destroyed).map(|r| r.card.id).collect();
+    cards: &mut Vec<Card>,
+    results: &[CombatResult],
+) -> Vec<Card> {
+    let destroyed_ids: Vec<u32> = results
+        .iter()
+        .filter(|r| r.destroyed)
+        .map(|r| r.card_id)
+        .collect();
 
-    dwarves.retain(|d| !dead_dwarf_ids.contains(&d.id));
-    monsters.retain(|m| !dead_monster_ids.contains(&m.id));
+    cards.retain(|c| !destroyed_ids.contains(&c.id));
+    cards.into_iter().filter(|c| !destroyed_ids.contains(&c.id)).map(|c| c.clone()).collect()
 }

@@ -1,14 +1,13 @@
-use std::collections::HashMap;
-use super::card::{Card, Resources, ResourceCost};
+use super::card::{Card, Resources, CardEffect};
 use super::entry_point::{EntryPoint, get_entry_points};
 use super::event::GameEvent;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Phase {
-    Dawn,     // Collect resources
-    Day,      // Play cards
-    Dusk,     // Event revealed
-    Night,    // Combat resolution
+    Dawn,
+    Day,
+    Dusk,
+    Night,
     EndTurn,
 }
 
@@ -64,7 +63,6 @@ impl GameState {
                     self.discard.push(card);
                 }
             } else if !self.discard.is_empty() {
-                // Shuffle discard into deck
                 let mut discards = std::mem::take(&mut self.discard);
                 self.deck.append(&mut discards);
                 self.shuffle_deck();
@@ -77,14 +75,18 @@ impl GameState {
     }
 
     pub fn play_card(&mut self, card: &Card, entry_id: u32) -> bool {
-        // Check if entry exists and has space
+        // Find entry point
         let entry = self.entry_points.iter_mut().find(|e| e.id == entry_id);
-        if entry.is_none() || entry.map(|e| e.is_full()).unwrap_or(true) {
+        if entry.is_none() {
+            return false;
+        }
+        let entry = entry.unwrap();
+
+        if entry.is_full() {
             return false;
         }
 
         // Check entry type compatibility
-        let entry = entry.unwrap();
         if !entry.can_play_card(card.entry_type) {
             return false;
         }
@@ -115,10 +117,10 @@ impl GameState {
         false
     }
 
-    fn apply_effect(&mut self, effect: &super::card::CardEffect) {
+    fn apply_effect(&mut self, effect: &CardEffect) {
         match effect {
-            super::card::CardEffect::GenerateResource { resource, amount } => {
-                match *resource {
+            CardEffect::GenerateResource { resource, amount } => {
+                match resource.as_str() {
                     "gold" => self.resources.gold += amount,
                     "ore" => self.resources.ore += amount,
                     "beer" => self.resources.beer += amount,
@@ -128,10 +130,10 @@ impl GameState {
                     _ => {}
                 }
             }
-            super::card::CardEffect::DrawCard => {
+            CardEffect::DrawCard => {
                 self.draw_cards(1);
             }
-            super::card::CardEffect::Heal { amount } => {
+            CardEffect::Heal { amount } => {
                 self.player_hp = (self.player_hp + amount).min(30);
             }
             _ => {}
@@ -139,7 +141,6 @@ impl GameState {
     }
 
     pub fn collect_resources(&mut self) {
-        // Base resources from entry points
         for entry in &self.entry_points {
             self.resources.gold += entry.resource_bonus.gold;
             self.resources.ore += entry.resource_bonus.ore;
@@ -148,17 +149,11 @@ impl GameState {
             self.resources.mithril += entry.resource_bonus.mithril;
             self.resources.runes += entry.resource_bonus.runes;
         }
-
-        // Passive effects from cards would be processed here
     }
 
     pub fn advance_day(&mut self) {
         self.day += 1;
-
-        // Update darkness level (0.0 to 1.0 over 300 days)
         self.darkness_level = (self.day as f32 / 300.0).min(1.0);
-
-        // Discard hand at end of day
         self.discard.extend(self.hand.drain(..));
         self.selected_card = None;
         self.selected_entry = None;

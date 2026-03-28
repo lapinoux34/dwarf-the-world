@@ -3,7 +3,7 @@ mod game;
 mod rendering;
 
 use bevy::prelude::*;
-use game::{GameState, Phase, CardType, EntryPoint};
+use game::{GameState, Phase};
 use rendering::{
     CardComponent, EntryPointComponent, EndTurnButton,
     DayCounter, DarknessIndicator, PhaseIndicator, ResourcesDisplay,
@@ -129,9 +129,7 @@ fn handle_entry_click(
             let entry_id = entry_comp.entry_id;
             if let Some(ref card) = game_res.state.selected_card {
                 let card_clone = card.clone();
-                if game_res.state.play_card(&card_clone, entry_id) {
-                    // Card was played successfully
-                }
+                game_res.state.play_card(&card_clone, entry_id);
             }
         }
     }

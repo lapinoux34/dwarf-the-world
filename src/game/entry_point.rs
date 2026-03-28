@@ -1,7 +1,4 @@
-// Backwards compatibility layer - maps old EntryPoint to new WorldZone
 use serde::{Deserialize, Serialize};
-
-pub use super::zone::{ZoneEffect, ZoneType, WorldZone, get_world_zones};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EntryType {
@@ -28,58 +25,6 @@ impl EntryType {
             EntryType::Any => "None",
         }
     }
-
-    pub fn to_zone_type(&self) -> ZoneType {
-        match self {
-            EntryType::Trade => ZoneType::Trade,
-            EntryType::Wealth => ZoneType::Wealth,
-            EntryType::Resource => ZoneType::Resource,
-            EntryType::Supply => ZoneType::Supply,
-            EntryType::Military => ZoneType::Military,
-            EntryType::Production => ZoneType::Production,
-            EntryType::Recruitment => ZoneType::Recruitment,
-            EntryType::Any => ZoneType::Any,
-        }
-    }
-}
-
-impl From<ZoneType> for EntryType {
-    fn from(zt: ZoneType) -> Self {
-        match zt {
-            ZoneType::Trade => EntryType::Trade,
-            ZoneType::Wealth => EntryType::Wealth,
-            ZoneType::Resource => EntryType::Resource,
-            ZoneType::Supply => EntryType::Supply,
-            ZoneType::Military => EntryType::Military,
-            ZoneType::Production => EntryType::Production,
-            ZoneType::Recruitment => EntryType::Recruitment,
-            ZoneType::Danger => EntryType::Any,
-            ZoneType::Any => EntryType::Any,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResourceYield {
-    pub gold: u32,
-    pub ore: u32,
-    pub beer: u32,
-    pub food: u32,
-    pub mithril: u32,
-    pub runes: u32,
-}
-
-impl Default for ResourceYield {
-    fn default() -> Self {
-        Self {
-            gold: 0,
-            ore: 0,
-            beer: 0,
-            food: 0,
-            mithril: 0,
-            runes: 0,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,33 +39,17 @@ pub struct EntryPoint {
     pub resource_bonus: ResourceYield,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ResourceYield {
+    pub gold: u32,
+    pub ore: u32,
+    pub beer: u32,
+    pub food: u32,
+    pub mithril: u32,
+    pub runes: u32,
+}
+
 impl EntryPoint {
-    pub fn from_zone(zone: &WorldZone) -> Self {
-        let resource_bonus = match zone.zone_effect {
-            ZoneEffect::GoldIncome(n) => ResourceYield { gold: n, ..Default::default() },
-            ZoneEffect::GoldPerDwarf(n) => ResourceYield { gold: n, ..Default::default() },
-            ZoneEffect::OreIncome(n) => ResourceYield { ore: n, ..Default::default() },
-            ZoneEffect::BeerIncome(n) => ResourceYield { beer: n, ..Default::default() },
-            _ => ResourceYield::default(),
-        };
-
-        let defense_bonus = match zone.zone_effect {
-            ZoneEffect::DefenseBonus(n) => n,
-            _ => 0,
-        };
-
-        Self {
-            id: zone.id,
-            name: zone.name.clone(),
-            description: zone.description.clone(),
-            entry_type: zone.zone_type.into(),
-            max_cards: zone.max_cards,
-            cards: zone.cards.clone(),
-            defense_bonus,
-            resource_bonus,
-        }
-    }
-
     pub fn new(
         id: u32,
         name: &str,
@@ -160,8 +89,15 @@ impl EntryPoint {
     }
 }
 
-// Legacy function for backwards compatibility
 pub fn get_entry_points() -> Vec<EntryPoint> {
-    let zones = get_world_zones();
-    zones.iter().map(EntryPoint::from_zone).collect()
+    vec![
+        EntryPoint::new(1, "Dale City Gates", "Trade and commerce entry", EntryType::Trade, 6),
+        EntryPoint::new(2, "Erebor Treasury", "Riches and defense", EntryType::Wealth, 5),
+        EntryPoint::new(3, "Moria Mines", "Ore and danger", EntryType::Resource, 6),
+        EntryPoint::new(4, "Dale Marketplace", "Food and supplies", EntryType::Supply, 5),
+        EntryPoint::new(5, "Mountain Pass", "Military defense", EntryType::Military, 6),
+        EntryPoint::new(6, "River Dock", "River trade routes", EntryType::Trade, 4),
+        EntryPoint::new(7, "Dwarven Forge", "Weapon crafting", EntryType::Production, 5),
+        EntryPoint::new(8, "Tavern Gate", "Mercenaries and heroes", EntryType::Recruitment, 5),
+    ]
 }

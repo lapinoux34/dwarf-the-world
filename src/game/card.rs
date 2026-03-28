@@ -5,7 +5,7 @@ use super::entry_point::EntryType;
 pub enum CardType {
     Settler,    // Establish presence, claim territory
     Builder,    // Construct buildings, structures
-    Defender,  // Protect entry points
+    Defender,   // Protect entry points
     Resource,   // Generate resources
     Hero,       // Powerful unique dwarves
     Ally,       // Non-dwarf helpers

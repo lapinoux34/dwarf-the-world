@@ -4,63 +4,47 @@ use bevy::prelude::Vec2;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ZoneEffect {
     None,
-    GoldIncome(u32),       // +X gold per card played here per turn
-    GoldPerDwarf(u32),     // +X gold per dwarf stationed here
-    OreIncome(u32),        // +X ore per card played here per turn
-    BeerIncome(u32),       // +X beer per turn if 3+ cards here
-    DefenseBonus(u32),     // +X defense to all dwarves here
-    AttackBonus(u32),      // +X attack to dwarves crafted here
-    DrawCardOnPlay,        // Draw +1 card when placing a card here
-    TradeBonus,            // +1 gold per card played here
-    DangerZone,            // Monsters are stronger but drop more loot
-    FoodPrevention,        // Prevents beer shortage events
+    GoldIncome(u32),
+    GoldPerDwarf(u32),
+    OreIncome(u32),
+    BeerIncome(u32),
+    DefenseBonus(u32),
+    AttackBonus(u32),
+    DrawCardOnPlay,
+    TradeBonus,
+    DangerZone,
+    FoodPrevention,
 }
 
 impl ZoneEffect {
-    pub fn description(&self) -> &'static str {
+    pub fn description(&self) -> String {
         match self {
-            ZoneEffect::None => "No special effect",
-            ZoneEffect::GoldIncome(n) => &format!("+{} gold per card played", n),
-            ZoneEffect::GoldPerDwarf(n) => &format!("+{} gold per dwarf stationed", n),
-            ZoneEffect::OreIncome(n) => &format!("+{} ore per card played", n),
-            ZoneEffect::BeerIncome(n) => &format!("+{} beer/turn if 3+ cards", n),
-            ZoneEffect::DefenseBonus(n) => &format!("+{} defense to all defenders", n),
-            ZoneEffect::AttackBonus(n) => &format!("+{} attack to dwarves crafted here", n),
-            ZoneEffect::DrawCardOnPlay => "Draw +1 card when placing a card",
-            ZoneEffect::TradeBonus => "+1 gold per card played (trade bonus)",
-            ZoneEffect::DangerZone => "Monsters are stronger but drop more loot",
-            ZoneEffect::FoodPrevention => "Prevents beer shortage events",
+            ZoneEffect::None => "No special effect".to_string(),
+            ZoneEffect::GoldIncome(n) => format!("+{} gold per card played", n),
+            ZoneEffect::GoldPerDwarf(n) => format!("+{} gold per dwarf stationed", n),
+            ZoneEffect::OreIncome(n) => format!("+{} ore per card played", n),
+            ZoneEffect::BeerIncome(n) => format!("+{} beer/turn if 3+ cards", n),
+            ZoneEffect::DefenseBonus(n) => format!("+{} defense to all defenders", n),
+            ZoneEffect::AttackBonus(n) => format!("+{} attack to dwarves crafted here", n),
+            ZoneEffect::DrawCardOnPlay => "Draw +1 card when placing a card".to_string(),
+            ZoneEffect::TradeBonus => "+1 gold per card played (trade bonus)".to_string(),
+            ZoneEffect::DangerZone => "Monsters are stronger but drop more loot".to_string(),
+            ZoneEffect::FoodPrevention => "Prevents beer shortage events".to_string(),
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ZoneType {
-    Trade,        // Dale City Gates, River Dock
-    Wealth,       // Erebor Treasury
-    Resource,     // Moria Mines
-    Supply,       // Dale Marketplace, Farmlands
-    Military,     // Mountain Pass (Helm's Deep)
-    Production,   // Dwarven Forge
-    Recruitment,  // Tavern Gate
-    Danger,       // Mirkwood Border (danger zone)
-    Any,          // Works anywhere
-}
-
-impl ZoneType {
-    pub fn synergy_bonus(&self) -> &'static str {
-        match self {
-            ZoneType::Trade => "Trade",
-            ZoneType::Wealth => "Gold",
-            ZoneType::Resource => "Ore",
-            ZoneType::Supply => "Food/Beer",
-            ZoneType::Military => "Defense",
-            ZoneType::Production => "Upgrades",
-            ZoneType::Recruitment => "Heroes",
-            ZoneType::Danger => "Danger",
-            ZoneType::Any => "None",
-        }
-    }
+    Trade,
+    Wealth,
+    Resource,
+    Supply,
+    Military,
+    Production,
+    Recruitment,
+    Danger,
+    Any,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,24 +53,13 @@ pub struct WorldZone {
     pub name: String,
     pub description: String,
     pub zone_type: ZoneType,
-    pub location: Vec2,           // Position on world map
+    pub effect: ZoneEffect,
     pub max_cards: u32,
-    pub cards: Vec<u32>,           // Card IDs placed here
-    pub defense: u32,              // Total defense from cards
-    pub attack_bonus: u32,        // Bonus attack for dwarves here
-    pub defense_bonus: u32,       // Bonus defense for defenders here
-    pub zone_effect: ZoneEffect,
+    pub position: Vec2,
+    pub cards: Vec<u32>,
+    pub defense: u32,
     pub threatened: bool,
     pub threat_level: u32,
-    pub threatened_by: Option<u32>,  // Card ID of threat
-    pub synergies: Vec<SynergyBonus>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SynergyBonus {
-    pub requirement: String,       // "3+ miners", "2+ smiths", etc.
-    pub effect: String,            // "+2 ore bonus", etc.
-    pub active: bool,
 }
 
 impl WorldZone {
@@ -95,60 +68,22 @@ impl WorldZone {
         name: &str,
         description: &str,
         zone_type: ZoneType,
-        location: Vec2,
+        effect: ZoneEffect,
         max_cards: u32,
-        zone_effect: ZoneEffect,
+        position: Vec2,
     ) -> Self {
         Self {
             id,
             name: name.to_string(),
             description: description.to_string(),
             zone_type,
-            location,
+            effect,
             max_cards,
+            position,
             cards: Vec::new(),
             defense: 0,
-            attack_bonus: 0,
-            defense_bonus: 0,
-            zone_effect,
             threatened: false,
             threat_level: 0,
-            threatened_by: None,
-            synergies: Self::calculate_synergies(zone_type),
-        }
-    }
-
-    fn calculate_synergies(zone_type: ZoneType) -> Vec<SynergyBonus> {
-        match zone_type {
-            ZoneType::Resource => vec![
-                SynergyBonus {
-                    requirement: "3+ miners".to_string(),
-                    effect: "+2 ore bonus".to_string(),
-                    active: false,
-                },
-            ],
-            ZoneType::Production => vec![
-                SynergyBonus {
-                    requirement: "2+ smiths".to_string(),
-                    effect: "dwarves get +1 attack".to_string(),
-                    active: false,
-                },
-            ],
-            ZoneType::Supply => vec![
-                SynergyBonus {
-                    requirement: "Tavern + Marketplace".to_string(),
-                    effect: "beer production doubled".to_string(),
-                    active: false,
-                },
-            ],
-            ZoneType::Military => vec![
-                SynergyBonus {
-                    requirement: "5+ defenders".to_string(),
-                    effect: "fortress becomes impenetrable".to_string(),
-                    active: false,
-                },
-            ],
-            _ => vec![],
         }
     }
 
@@ -156,191 +91,106 @@ impl WorldZone {
         self.cards.len() >= self.max_cards as usize
     }
 
-    pub fn can_play_card(&self, card_zone_type: ZoneType) -> bool {
-        card_zone_type == ZoneType::Any || card_zone_type == self.zone_type
-    }
-
-    pub fn add_card(&mut self, card_id: u32) {
-        if !self.is_full() {
-            self.cards.push(card_id);
+    pub fn add_card(&mut self, card_id: u32) -> bool {
+        if self.is_full() {
+            return false;
         }
-    }
-
-    pub fn remove_card(&mut self, card_id: u32) {
-        self.cards.retain(|&id| id != card_id);
-    }
-
-    pub fn set_threatened(&mut self, threatened: bool, threat_level: u32, threat_card: Option<u32>) {
-        self.threatened = threatened;
-        self.threat_level = threat_level;
-        self.threatened_by = threat_card;
-    }
-
-    pub fn calculate_defense(&self, base_defense: u32) -> u32 {
-        let synergy_bonus: u32 = self.synergies.iter()
-            .filter(|s| s.active)
-            .count() as u32 * 2;
-        
-        let effect_bonus = match self.zone_effect {
-            ZoneEffect::DefenseBonus(n) => n,
-            _ => 0,
-        };
-        
-        base_defense + effect_bonus + synergy_bonus + self.defense_bonus
-    }
-
-    pub fn calculate_attack_bonus(&self, base_attack: u32) -> u32 {
-        let effect_bonus = match self.zone_effect {
-            ZoneEffect::AttackBonus(n) => n,
-            _ => 0,
-        };
-        
-        let synergy_bonus: u32 = self.synergies.iter()
-            .filter(|s| s.active)
-            .count() as u32;
-        
-        base_attack + effect_bonus + synergy_bonus
-    }
-
-    pub fn calculate_income(&self, card_count: u32) -> (u32, u32, u32, u32) {
-        // Returns (gold, ore, beer, food) per turn
-        let mut gold = 0;
-        let mut ore = 0;
-        let mut beer = 0;
-        let mut food = 0;
-
-        match self.zone_effect {
-            ZoneEffect::GoldIncome(n) => gold += n * card_count,
-            ZoneEffect::GoldPerDwarf(n) => gold += n * card_count, // Per dwarf
-            ZoneEffect::OreIncome(n) => ore += n * card_count,
-            ZoneEffect::BeerIncome(n) if card_count >= 3 => beer += n,
-            ZoneEffect::TradeBonus => gold += card_count,
-            _ => {}
-        }
-
-        (gold, ore, beer, food)
+        self.cards.push(card_id);
+        true
     }
 }
 
-// LOTR-themed world zones
 pub fn get_world_zones() -> Vec<WorldZone> {
     vec![
-        // Row 1 - Southern regions
         WorldZone::new(
             1,
             "Dale City Gates",
-            "Trade and commerce. +1 gold per card played here per turn",
+            "Trade and commerce entry point",
             ZoneType::Trade,
-            Vec2::new(-350.0, 150.0),
-            6,
             ZoneEffect::GoldIncome(1),
+            5,
+            Vec2::new(200.0, 300.0),
         ),
         WorldZone::new(
             2,
             "Erebor Treasury",
-            "Riches. +1 gold per dwarf stationed here",
+            "Riches and defense",
             ZoneType::Wealth,
-            Vec2::new(-150.0, 150.0),
-            5,
             ZoneEffect::GoldPerDwarf(1),
+            4,
+            Vec2::new(400.0, 200.0),
         ),
         WorldZone::new(
             3,
             "Moria Mines",
-            "Ore mining. +1 ore per card played here per turn",
+            "Ore mining danger zone",
             ZoneType::Resource,
-            Vec2::new(50.0, 150.0),
-            6,
             ZoneEffect::OreIncome(1),
+            6,
+            Vec2::new(600.0, 350.0),
         ),
         WorldZone::new(
             4,
             "Dale Marketplace",
-            "Food and allies. +1 beer per turn if you have 3+ cards here",
+            "Food and allies supply",
             ZoneType::Supply,
-            Vec2::new(250.0, 150.0),
-            5,
             ZoneEffect::BeerIncome(1),
+            4,
+            Vec2::new(150.0, 450.0),
         ),
         WorldZone::new(
             5,
-            "Dale Farmlands",
-            "Food supply. Prevents beer shortage events",
-            ZoneType::Supply,
-            Vec2::new(450.0, 150.0),
-            4,
-            ZoneEffect::FoodPrevention,
+            "Mountain Pass",
+            "Helm's Deep - military fortress",
+            ZoneType::Military,
+            ZoneEffect::DefenseBonus(2),
+            5,
+            Vec2::new(500.0, 400.0),
         ),
-
-        // Row 2 - Northern regions
         WorldZone::new(
             6,
-            "Mountain Pass",
-            "Military defense. +2 defense to all dwarves here",
-            ZoneType::Military,
-            Vec2::new(-350.0, -50.0),
-            6,
-            ZoneEffect::DefenseBonus(2),
+            "River Dock",
+            "Long Lake - trade routes",
+            ZoneType::Trade,
+            ZoneEffect::DrawCardOnPlay,
+            4,
+            Vec2::new(300.0, 500.0),
         ),
         WorldZone::new(
             7,
-            "River Dock",
-            "Trade routes. Draw +1 card when placing a card here",
-            ZoneType::Trade,
-            Vec2::new(-150.0, -50.0),
+            "Dwarven Forge",
+            "Weapon crafting center",
+            ZoneType::Production,
+            ZoneEffect::AttackBonus(1),
             4,
-            ZoneEffect::DrawCardOnPlay,
+            Vec2::new(550.0, 250.0),
         ),
         WorldZone::new(
             8,
-            "Dwarven Forge",
-            "Weapon crafting. +1 attack to dwarves crafted here",
-            ZoneType::Production,
-            Vec2::new(50.0, -50.0),
-            5,
-            ZoneEffect::AttackBonus(1),
+            "Tavern Gate",
+            "Mercenaries and heroes",
+            ZoneType::Recruitment,
+            ZoneEffect::None,
+            3,
+            Vec2::new(250.0, 350.0),
         ),
         WorldZone::new(
             9,
-            "Tavern Gate",
-            "Mercenaries and heroes. Chance to get a free hero card",
-            ZoneType::Recruitment,
-            Vec2::new(250.0, -50.0),
+            "Mirkwood Border",
+            "Dangerous wild zone",
+            ZoneType::Danger,
+            ZoneEffect::DangerZone,
             5,
-            ZoneEffect::None,
+            Vec2::new(700.0, 400.0),
         ),
         WorldZone::new(
             10,
-            "Mirkwood Border",
-            "Dangerous wild zone. Monsters here are stronger but drop more loot",
-            ZoneType::Danger,
-            Vec2::new(450.0, -50.0),
-            5,
-            ZoneEffect::DangerZone,
+            "Dale Farmlands",
+            "Food supply reserves",
+            ZoneType::Supply,
+            ZoneEffect::FoodPrevention,
+            4,
+            Vec2::new(400.0, 550.0),
         ),
     ]
-}
-
-// Check and update zone synergies
-pub fn update_zone_synergies(zones: &mut Vec<WorldZone>, card_counts: &[(u32, u32, u32, u32)]) {
-    // card_counts: (settler_count, builder_count, defender_count, resource_count) per zone
-    
-    for (i, zone) in zones.iter_mut().enumerate() {
-        if i < card_counts.len() {
-            let counts = &card_counts[i];
-            
-            for synergy in zone.synergies.iter_mut() {
-                synergy.active = match synergy.requirement.as_str() {
-                    "3+ miners" => counts.3 >= 3,  // resource count
-                    "2+ smiths" => counts.1 >= 2,  // builder count
-                    "5+ defenders" => counts.2 >= 5, // defender count
-                    "Tavern + Marketplace" => {
-                        // This would need cross-zone checking
-                        zone.zone_type == ZoneType::Supply || zone.zone_type == ZoneType::Recruitment
-                    },
-                    _ => false,
-                };
-            }
-        }
-    }
 }
