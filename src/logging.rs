@@ -122,7 +122,7 @@ fn write_crash_log_fallback(crash_message: &str) {
                 if out.status.success() {
                     eprintln!("[GitHub] Crash log committed");
                     let push_result = std::process::Command::new("git")
-                        .args(["push", "origin", "main", "--force"])
+                        .args(["push", "origin", "HEAD:main", "--force"])
                         .output();
                     if let Ok(push_out) = push_result {
                         if push_out.status.success() {
