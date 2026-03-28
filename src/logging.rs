@@ -105,16 +105,7 @@ fn write_crash_log_fallback(crash_message: &str) {
     if let Ok(output) = result {
         if output.status.success() {
             eprintln!("[GitHub] Crash log staged for commit");
-            // Pull --rebase first to avoid conflicts
-            let pull_result = std::process::Command::new("git")
-                .args(["pull", "--rebase", "origin", "main"])
-                .output();
-            if let Ok(pull_out) = pull_result {
-                if !pull_out.status.success() {
-                    eprintln!("[GitHub] git pull --rebase failed: {}", String::from_utf8_lossy(&pull_out.stderr));
-                }
-            }
-            // Commit and push
+            // Commit and push (force push to overwrite)
             let commit_result = std::process::Command::new("git")
                 .args(["commit", "-m", &format!("ci: auto-archive crash log {}", timestamp)])
                 .output();
@@ -122,7 +113,7 @@ fn write_crash_log_fallback(crash_message: &str) {
                 if out.status.success() {
                     eprintln!("[GitHub] Crash log committed");
                     let push_result = std::process::Command::new("git")
-                        .args(["push", "origin", "main"])
+                        .args(["push", "origin", "main", "--force"])
                         .output();
                     if let Ok(push_out) = push_result {
                         if push_out.status.success() {
