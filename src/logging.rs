@@ -110,7 +110,7 @@ fn write_crash_log_fallback(crash_message: &str) {
                 .args(["add", "-f", &path.to_string_lossy()])
                 .output();
             if !add_result.as_ref().map(|o| o.status.success()).unwrap_or(false) {
-                eprintln!("[GitHub] git add -f failed: {}", String::from_utf8_lossy(&add_result.err()));
+                eprintln!("[GitHub] git add -f failed");
                 return;
             }
             eprintln!("[GitHub] Crash log force-added");
