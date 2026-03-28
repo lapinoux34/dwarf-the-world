@@ -59,7 +59,7 @@ jobs:
       - name: Send notification on new crash
         if: steps.check.outputs.crashes == 'found'
         run: |
-          curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+          echo "Disabled" # curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
             -H "Content-Type: application/json" \
             -d '{
               "content": "<@520600771012591616> 🔍 **Crash detected!** I am now analyzing and will push a fix automatically.",
