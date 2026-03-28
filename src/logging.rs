@@ -65,65 +65,8 @@ fn log_to_file(path: &PathBuf, level: &str, msg: &str) {
 }
 
 fn trigger_github_dispatch(crash_message: &str) {
-    let github_token = match env::var("GITHUB_PAT") {
-        Ok(t) if !t.is_empty() => t,
-        _ => {
-            eprintln!("[GitHub] GITHUB_PAT not set - writing to crash-logs/ for GitHub Actions cron");
-            write_crash_log_fallback(crash_message);
-            return;
-        }
-    };
-
-    eprintln!("[GitHub] Triggering repository dispatch...");
-
-    let hostname = env::var("COMPUTERNAME")
-        .or_else(|_| env::var("HOSTNAME"))
-        .unwrap_or_else(|_| "UnknownPC".to_string());
-
-    let payload = serde_json::json!({
-        "event_type": "crash-report",
-        "client_payload": {
-            "crash_message": crash_message,
-            "machine_name": hostname,
-            "timestamp": chrono::Utc::now().to_rfc3339()
-        }
-    });
-
-    // Also write fallback log in case dispatch fails
+    // Write crash log and push via git - no GitHub API needed
     write_crash_log_fallback(crash_message);
-
-    let client = match reqwest::blocking::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
-        .build()
-    {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("[GitHub] Failed to build HTTP client: {}", e);
-            return;
-        }
-    };
-
-    let resp = client
-        .post("https://api.github.com/repos/lapinoux34/dwarf-the-world/dispatches")
-        .header("Authorization", format!("Bearer {}", github_token))
-        .header("Accept", "application/vnd.github+json")
-        .header("X-GitHub-Api-Version", "2022-11-28")
-        .header("Content-Type", "application/json")
-        .body(serde_json::to_string(&payload).unwrap_or_default())
-        .send();
-
-    match resp {
-        Ok(r) => {
-            if r.status().is_success() || r.status().as_u16() == 204 {
-                eprintln!("[GitHub] Dispatch triggered successfully!");
-            } else {
-                eprintln!("[GitHub] Dispatch failed with status: {} - crash log written to crash-logs/", r.status());
-            }
-        }
-        Err(e) => {
-            eprintln!("[GitHub] Dispatch request failed: {} - crash log written to crash-logs/", e);
-        }
-    }
 }
 
 fn write_crash_log_fallback(crash_message: &str) {
@@ -162,6 +105,15 @@ fn write_crash_log_fallback(crash_message: &str) {
     if let Ok(output) = result {
         if output.status.success() {
             eprintln!("[GitHub] Crash log staged for commit");
+            // Pull --rebase first to avoid conflicts
+            let pull_result = std::process::Command::new("git")
+                .args(["pull", "--rebase", "origin", "main"])
+                .output();
+            if let Ok(pull_out) = pull_result {
+                if !pull_out.status.success() {
+                    eprintln!("[GitHub] git pull --rebase failed: {}", String::from_utf8_lossy(&pull_out.stderr));
+                }
+            }
             // Commit and push
             let commit_result = std::process::Command::new("git")
                 .args(["commit", "-m", &format!("ci: auto-archive crash log {}", timestamp)])

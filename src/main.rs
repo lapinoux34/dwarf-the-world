@@ -56,9 +56,11 @@ fn main() {
                 DefaultPlugins
                     .set(WindowPlugin {
                         primary_window: Some(Window {
-                            title: "⚒ DWARF THE WORLD ⚒".to_string(),
+                            title: "⚒ DWARF THE WORLD ⚒ - GAME WINDOW".to_string(),
                             resolution: bevy::window::WindowResolution::new(1280.0, 720.0),
                             resizable: true,
+                            decorations: true,
+                            transparent: false,
                             ..Default::default()
                         }),
                         ..Default::default()
