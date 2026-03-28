@@ -88,7 +88,8 @@ fn main() {
             ))
             .run();
 
-        // App::run() blocks until window is closed - no artificial check needed
+        // App::run() returned - log before exiting
+        eprintln!("[INFO] App::run() returned - this line should appear if window was shown and closed normally");
         0
     }).unwrap_or_else(|_| {
         logging::log_error("Process panicked before App::run()");
