@@ -66,13 +66,15 @@ fn send_to_discord(message: &str, level: &str) {
         return;
     }
 
-    let webhook_url = match env::var("DISCORD_WEBHOOK_URL") {
-        Ok(url) if !url.is_empty() => url,
-        _ => {
-            eprintln!("[Discord] DISCORD_WEBHOOK_URL not set - skipping");
-            return;
-        }
-    };
+    // Check env var first, fall back to hardcoded webhook
+    let webhook_url = env::var("DISCORD_WEBHOOK_URL")
+        .ok()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| {
+            "https://discord.com/api/webhooks/1487528275017465916/vpUjilBbp7AFwlomuJ0jH-QvBTyii6sdcNwciGRE6BPA-1Pja-pF9DBW-dvwHrlHloJW".to_string()
+        });
+
+    eprintln!("[Discord] Sending {} notification to Discord...", level);
 
     eprintln!("[Discord] Sending {} notification...", level);
 

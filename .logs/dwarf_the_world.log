@@ -1,0 +1,10 @@
+[1774727517][INFO] === Dwarf The World Started ===
+[1774727517][INFO] [WARN] Discord webhook NOT set
+[1774727517][INFO] Starting Dwarf The World...
+[1774727517][INFO] DISCORD_WEBHOOK_URL=NOT SET
+[1774727517][INFO] Loaded 30 cards
+[1774727517][INFO] GameState created, entering App::run()...
+[1774727517][ERROR] PANIC: panicked at /home/node/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bevy_render-0.13.2/src/renderer/mod.rs:141:10:
+Unable to find a GPU! Make sure you have installed required drivers! For extra information, see: https://github.com/bevyengine/bevy/blob/latest/docs/linux_dependencies.md
+[1774727517][ERROR] Process panicked before App::run()
+[1774727517][INFO] Process exiting with code: 101
