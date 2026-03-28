@@ -163,15 +163,17 @@ fn advance_phase_system(
 
 fn update_ui(
     game_res: Res<GameResource>,
-    mut day_query: Query<&mut Text, With<DayCounter>>,
-    mut dark_query: Query<&mut Text, With<DarknessIndicator>>,
-    mut phase_query: Query<&mut Text, With<PhaseIndicator>>,
-    mut resources_query: Query<&mut Text, With<ResourcesDisplay>>,
+    mut ui_queries: ParamSet<(
+        Query<&mut Text, With<DayCounter>>,
+        Query<&mut Text, With<DarknessIndicator>>,
+        Query<&mut Text, With<PhaseIndicator>>,
+        Query<&mut Text, With<ResourcesDisplay>>,
+    )>,
 ) {
     let state = &game_res.state;
 
-    update_day_counter(&mut day_query, state.day);
-    update_darkness_indicator(&mut dark_query, state.darkness_level);
+    update_day_counter(&mut ui_queries.p0(), state.day);
+    update_darkness_indicator(&mut ui_queries.p1(), state.darkness_level);
 
     let phase_str = match state.phase {
         Phase::Dawn => "Dawn",
@@ -180,10 +182,10 @@ fn update_ui(
         Phase::Night => "Night",
         Phase::EndTurn => "End",
     };
-    update_phase_indicator(&mut phase_query, phase_str);
+    update_phase_indicator(&mut ui_queries.p2(), phase_str);
 
     update_resources_display(
-        &mut resources_query,
+        &mut ui_queries.p3(),
         state.resources.gold,
         state.resources.ore,
         state.resources.beer,

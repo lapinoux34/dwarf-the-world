@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::game::card::{Card, CardType, DwarfFaction};
-use crate::game::EntryType;
+use crate::game::ZoneType;
 
 #[derive(Component)]
 pub struct CardComponent {
