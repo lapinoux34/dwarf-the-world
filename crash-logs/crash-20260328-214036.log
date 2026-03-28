@@ -1,0 +1,4 @@
+Machine: DESKTOP-V41HNUV
+Timestamp: 2026-03-28T21:40:36.063170100+00:00
+
+WINDOW DID NOT APPEAR - App::run() returned but no window was shown. GPU/driver crash or Bevy initialization failure.
