@@ -88,6 +88,8 @@ fn main() {
             ))
             .run();
 
+        // Give window time to appear
+        std::thread::sleep(std::time::Duration::from_secs(3));
         logging::log_error("WINDOW DID NOT APPEAR - App::run() returned but no window was shown. GPU/driver crash or Bevy initialization failure.");
         0
     }).unwrap_or_else(|_| {
