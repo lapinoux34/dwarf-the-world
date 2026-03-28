@@ -27,33 +27,32 @@ struct GameResource {
 struct CardInHand;
 
 fn main() {
-    eprintln!("[MAIN] Step 1: calling setup_logging()...");
-    logging::setup_logging();
-    eprintln!("[MAIN] Step 2: setup_logging done");
+    // Use process::exit to ensure at_exit runs AND we capture the exit code
+    let exit_code = std::panic::catch_unwind(|| {
+        logging::setup_logging();
 
-    // Set up panic handler to catch crashes and send to Discord
-    std::panic::set_hook(Box::new(|panic_info| {
-        let msg = format!("Application panic: {}", panic_info);
-        logging::log_error(&msg);
-    }));
-    eprintln!("[MAIN] Step 3: panic hook set");
+        // Panic hook for main thread panics
+        std::panic::set_hook(Box::new(|panic_info| {
+            let msg = format!("PANIC: {}", panic_info);
+            logging::log_error(&msg);
+        }));
 
-    eprintln!("[MAIN] Step 4: calling get_starter_cards()...");
-    let cards = get_starter_cards();
-    eprintln!("[MAIN] Step 5: got {} cards", cards.len());
+        logging::log_info("Starting Dwarf The World...");
+        logging::log_info(&format!("DISCORD_WEBHOOK_URL={}",
+            if std::env::var("DISCORD_WEBHOOK_URL").unwrap_or_default().is_empty() {
+                "NOT SET".to_string()
+            } else { "SET".to_string() }
+        ));
 
-    eprintln!("[MAIN] Step 6: creating GameState...");
-    let game_state = GameState::new(cards);
-    eprintln!("[MAIN] Step 7: GameState created");
+        let cards = get_starter_cards();
+        logging::log_info(&format!("Loaded {} cards", cards.len()));
 
-    eprintln!("[MAIN] Step 8: entering catch_unwind...");
-    let app_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        eprintln!("[MAIN] Step 9: inside catch_unwind, creating App...");
+        let game_state = GameState::new(cards);
+        logging::log_info("GameState created, entering App::run()...");
+
         App::new()
             .add_plugins(DefaultPlugins)
-            .insert_resource(GameResource {
-                state: game_state,
-            })
+            .insert_resource(GameResource { state: game_state })
             .add_systems(Startup, setup)
             .add_systems(Update, (
                 handle_card_click,
@@ -63,19 +62,16 @@ fn main() {
                 update_ui,
             ))
             .run();
-    }));
-    eprintln!("[MAIN] Step 10: App::run() returned");
 
-    if app_result.is_err() {
-        logging::log_error("App crashed - check .logs/dwarf_the_world.log");
-        eprintln!("\n=== CRASH DETECTED ===");
-        eprintln!("Check .logs/dwarf_the_world.log for details");
-        eprintln!("Press Enter to exit...");
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).ok();
-    } else {
-        logging::log_info("App exited normally");
-    }
+        logging::log_info("App::run() completed normally");
+        0
+    }).unwrap_or_else(|_| {
+        logging::log_error("Process panicked before App::run()");
+        101
+    });
+
+    logging::log_info(&format!("Process exiting with code: {}", exit_code));
+    std::process::exit(exit_code);
 }
 
 fn setup(
@@ -83,6 +79,7 @@ fn setup(
     mut game_res: ResMut<GameResource>,
 ) {
     commands.spawn(Camera2dBundle::default());
+    logging::log_info("Camera spawned");
 
     commands.spawn(NodeBundle {
         style: Style {
@@ -93,8 +90,10 @@ fn setup(
         background_color: BackgroundColor(Color::rgb(0.05, 0.03, 0.02)),
         ..default()
     });
+    logging::log_info("Background spawned");
 
     create_top_bar(&mut commands);
+    logging::log_info("Top bar created");
 
     let entry_width = 175.0;
     let entry_height = 125.0;
@@ -111,21 +110,22 @@ fn setup(
         let y = start_y - (row as f32) * gap_y;
         create_entry_point_ui(&mut commands, entry, Vec3::new(x, y, 0.0), entry_width, entry_height);
     }
+    logging::log_info(&format!("{} entry points spawned", game_res.state.entry_points.len()));
 
     create_hand_area(&mut commands);
     create_end_turn_button(&mut commands);
+    logging::log_info("Hand area and end turn button created");
 
     game_res.state.draw_cards(3);
     game_res.state.phase = Phase::Day;
+    logging::log_info("Initial hand drawn, phase set to Day");
 
     spawn_hand(&mut commands, &mut game_res);
 }
 
 fn spawn_hand(commands: &mut Commands, game_res: &mut GameResource) {
     let hand_size = game_res.state.hand.len();
-    if hand_size == 0 {
-        return;
-    }
+    if hand_size == 0 { return; }
     let card_width = 95.0;
     let total_width = (hand_size as f32) * card_width;
     let start_x = -total_width / 2.0 + card_width / 2.0;
@@ -140,6 +140,7 @@ fn spawn_hand(commands: &mut Commands, game_res: &mut GameResource) {
         );
         commands.entity(entity).insert(CardInHand);
     }
+    logging::log_info(&format!("{} cards spawned in hand", hand_size));
 }
 
 fn handle_card_click(

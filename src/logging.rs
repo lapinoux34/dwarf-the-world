@@ -7,6 +7,7 @@ use std::sync::Mutex;
 use std::time::SystemTime;
 
 static LOG_FILE: Mutex<Option<PathBuf>> = Mutex::new(None);
+static DISCORD_SENT: Mutex<bool> = Mutex::new(false);
 
 pub fn setup_logging() {
     let log_dir = PathBuf::from(".logs");
@@ -15,45 +16,34 @@ pub fn setup_logging() {
     let log_path = log_dir.join("dwarf_the_world.log");
     *LOG_FILE.lock().unwrap() = Some(log_path.clone());
 
-    // Panic hook that logs to file + Discord
-    let log_path_clone = log_path.clone();
-    panic::set_hook(Box::new(move |panic_info| {
-        let msg = format!("PANIC: {}", panic_info);
-        log_to_file(&log_path_clone, "PANIC", &msg);
-        send_to_discord(&msg, "PANIC");
-        eprintln!("{}", msg);
-    }));
-
+    // Clear log file on new start
+    let _ = std::fs::remove_file(&log_path);
     log_to_file(&log_path, "INFO", "=== Dwarf The World Started ===");
-    println!("Logs: .logs/dwarf_the_world.log");
 
-    if env::var("DISCORD_WEBHOOK_URL").map(|s| !s.is_empty()).unwrap_or(false) {
-        println!("[OK] Discord webhook configured - errors will be sent to Discord");
+    let webhook_status = if env::var("DISCORD_WEBHOOK_URL").map(|s| !s.is_empty()).unwrap_or(false) {
+        "[OK] Discord webhook SET"
     } else {
-        println!("[WARN] DISCORD_WEBHOOK_URL not set - set it to receive crash alerts on Discord");
-    }
+        "[WARN] Discord webhook NOT set"
+    };
+
+    log_to_file(&log_path, "INFO", webhook_status);
+    eprintln!("Logs: .logs/dwarf_the_world.log");
+    eprintln!("{}", webhook_status);
 }
 
 pub fn log_error(msg: &str) {
+    eprintln!("[ERROR] {}", msg);
     if let Some(ref path) = *LOG_FILE.lock().unwrap() {
         log_to_file(path, "ERROR", msg);
     }
     send_to_discord(msg, "ERROR");
-    eprintln!("[ERROR] {}", msg);
-}
-
-pub fn log_warn(msg: &str) {
-    if let Some(ref path) = *LOG_FILE.lock().unwrap() {
-        log_to_file(path, "WARN", msg);
-    }
-    eprintln!("[WARN] {}", msg);
 }
 
 pub fn log_info(msg: &str) {
+    eprintln!("[INFO] {}", msg);
     if let Some(ref path) = *LOG_FILE.lock().unwrap() {
         log_to_file(path, "INFO", msg);
     }
-    println!("[INFO] {}", msg);
 }
 
 fn log_to_file(path: &PathBuf, level: &str, msg: &str) {
@@ -66,42 +56,46 @@ fn log_to_file(path: &PathBuf, level: &str, msg: &str) {
 
     if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(path) {
         let _ = file.write_all(log_entry.as_bytes());
+        let _ = file.flush();
     }
 }
 
 fn send_to_discord(message: &str, level: &str) {
+    // Prevent duplicate sends
+    if *DISCORD_SENT.lock().unwrap() {
+        return;
+    }
+
     let webhook_url = match env::var("DISCORD_WEBHOOK_URL") {
-        Ok(url) if !url.is_empty() => {
-            eprintln!("[Discord] Webhook configured, sending {}...", level);
-            url
-        },
+        Ok(url) if !url.is_empty() => url,
         _ => {
-            eprintln!("[Discord] DISCORD_WEBHOOK_URL not set - skipping Discord notification");
+            eprintln!("[Discord] DISCORD_WEBHOOK_URL not set - skipping");
             return;
         }
     };
 
+    eprintln!("[Discord] Sending {} notification...", level);
+
     let color = match level {
-        "PANIC" => 0xFF0000,
-        "ERROR" => 0xFF4444,
-        "WARN" => 0xFFAA00,
-        _ => 0x888888,
+        "PANIC" | "ERROR" => 0xFF0000u32,
+        _ => 0xFFAA00u32,
     };
 
     let hostname = env::var("COMPUTERNAME")
         .or_else(|_| env::var("HOSTNAME"))
-        .unwrap_or_else(|_| "PC".to_string());
+        .unwrap_or_else(|_| "UnknownPC".to_string());
 
-    // Truncate message if too long (Discord embed description limit)
-    let truncated_msg = if message.len() > 1000 {
-        format!("{}...", &message[..1000])
+    // Truncate long messages
+    let truncated_msg = if message.len() > 900 {
+        format!("{}...", &message[..900])
     } else {
         message.to_string()
     };
 
     let json_payload = serde_json::json!({
+        "content": format!("<@520600771012591616> **[{}]**", level),
         "embeds": [{
-            "title": format!("[{}] Dwarf The World", level),
+            "title": format!("Dwarf The World - {}", level),
             "description": format!("```\n{}\n```", truncated_msg),
             "color": color,
             "footer": { "text": hostname },
@@ -109,15 +103,33 @@ fn send_to_discord(message: &str, level: &str) {
         }]
     });
 
-    // Use blocking reqwest
-    let client = reqwest::blocking::Client::builder()
-        .timeout(std::time::Duration::from_secs(5))
-        .build();
+    // Use blocking reqwest - synchronous, will wait for response
+    let client = match reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+    {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("[Discord] Failed to build HTTP client: {}", e);
+            return;
+        }
+    };
 
-    if let Ok(client) = client {
-        let _ = client.post(&webhook_url)
-            .header("Content-Type", "application/json")
-            .body(serde_json::to_string(&json_payload).unwrap_or_default())
-            .send();
+    match client.post(&webhook_url)
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&json_payload).unwrap_or_default())
+        .send()
+    {
+        Ok(resp) => {
+            if resp.status().is_success() {
+                eprintln!("[Discord] {} notification sent successfully!", level);
+                *DISCORD_SENT.lock().unwrap() = true;
+            } else {
+                eprintln!("[Discord] Failed to send - status: {}", resp.status());
+            }
+        }
+        Err(e) => {
+            eprintln!("[Discord] Request failed: {}", e);
+        }
     }
 }
