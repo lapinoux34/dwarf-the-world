@@ -35,10 +35,16 @@ fn main() {
         logging::log_error(&msg);
     }));
 
-    let cards = get_starter_cards();
-    let game_state = GameState::new(cards);
+    logging::log_info("Starting game initialization...");
 
-    let app_result = std::panic::catch_unwind(|| {
+    let cards = get_starter_cards();
+    logging::log_info(&format!("Loaded {} starter cards", cards.len()));
+
+    let game_state = GameState::new(cards);
+    logging::log_info("GameState created");
+
+    let app_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        logging::log_info("Creating Bevy App...");
         App::new()
             .add_plugins(DefaultPlugins)
             .insert_resource(GameResource {
@@ -53,13 +59,17 @@ fn main() {
                 update_ui,
             ))
             .run();
-    });
+    }));
 
     if app_result.is_err() {
-        logging::log_error("App crashed - check above for panic message");
-        eprintln!("\n=== CRASH DETECTED - press Enter to exit ===");
+        logging::log_error("App crashed - check .logs/dwarf_the_world.log");
+        eprintln!("\n=== CRASH DETECTED ===");
+        eprintln!("Check .logs/dwarf_the_world.log for details");
+        eprintln!("Press Enter to exit...");
         let mut input = String::new();
         std::io::stdin().read_line(&mut input).ok();
+    } else {
+        logging::log_info("App exited normally");
     }
 }
 
