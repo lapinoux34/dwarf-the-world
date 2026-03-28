@@ -71,7 +71,7 @@ fn main() {
                             transparent: false,
                             focused: true,
                             visible: true,
-                            position: bevy::window::WindowPosition::Centered(bevy::window::MonitorSelection::Primary),
+                            position: bevy::window::WindowPosition::At(bevy::math::IVec2::new(100, 100)),
                             ..Default::default()
                         }),
                         ..Default::default()
