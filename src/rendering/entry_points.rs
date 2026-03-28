@@ -64,11 +64,9 @@ pub fn create_entry_point_ui(
             border_color: BorderColor(border),
             ..default()
         },
-        Transform {
-            translation: position,
-            ..default()
-        },
     )).id();
+
+    commands.entity(entry_entity).insert(Transform::from_translation(position));
 
     // Entry name
     let name_entity = commands.spawn((
