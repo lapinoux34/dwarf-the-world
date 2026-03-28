@@ -105,7 +105,16 @@ fn write_crash_log_fallback(crash_message: &str) {
     if let Ok(output) = result {
         if output.status.success() {
             eprintln!("[GitHub] Crash log staged for commit");
-            // Commit and push (force push to overwrite)
+            // Force add (ignore .gitignore) and commit
+            let add_result = std::process::Command::new("git")
+                .args(["add", "-f", &path.to_string_lossy()])
+                .output();
+            if !add_result.as_ref().map(|o| o.status.success()).unwrap_or(false) {
+                eprintln!("[GitHub] git add -f failed: {}", String::from_utf8_lossy(&add_result.err()));
+                return;
+            }
+            eprintln!("[GitHub] Crash log force-added");
+
             let commit_result = std::process::Command::new("git")
                 .args(["commit", "-m", &format!("ci: auto-archive crash log {}", timestamp)])
                 .output();
