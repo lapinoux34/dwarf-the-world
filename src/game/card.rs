@@ -10,13 +10,23 @@ pub enum CardType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DwarfFaction {
+    Erebor,    // Thorin Company - treasure-focused
+    Moria,     // Durin's Folk - mining, darker
+    Dale,      // Allies, traders
+    IronHills, // Warriors, defense
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DwarfClass {
+    Leader,
     Warrior,
+    Elder,
     Miner,
-    Brewer,
+    Defender,
     Smith,
-    Ranger,
-    Mage,
+    RuneMaster,
+    ShadowWalker,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,10 +34,11 @@ pub enum CardEffect {
     Heal(u32),
     DrawCard,
     GainGold(u32),
-    GainOre(u32),
-    GainBeer(u32),
-    GainRunes(u32),
+    GainMithril(u32),
+    GainProvisions(u32),
+    GainRunestones(u32),
     BuffNearby(u32),
+    WeakenEnemy(u32),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,8 +50,9 @@ pub struct Card {
     pub attack: Option<u32>,
     pub defense: Option<u32>,
     pub effect: Option<CardEffect>,
-    pub art_path: String,
+    pub art_prompt: String,
     pub dwarf_class: Option<DwarfClass>,
+    pub faction: Option<DwarfFaction>,
 }
 
 impl Card {
@@ -52,8 +64,9 @@ impl Card {
         attack: Option<u32>,
         defense: Option<u32>,
         effect: Option<CardEffect>,
-        art_path: &str,
+        art_prompt: &str,
         dwarf_class: Option<DwarfClass>,
+        faction: Option<DwarfFaction>,
     ) -> Self {
         Self {
             id,
@@ -63,8 +76,9 @@ impl Card {
             attack,
             defense,
             effect,
-            art_path: art_path.to_string(),
+            art_prompt: art_prompt.to_string(),
             dwarf_class,
+            faction,
         }
     }
 

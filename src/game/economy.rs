@@ -3,9 +3,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Resources {
     pub gold: u32,
-    pub ore: u32,
-    pub beer: u32,
-    pub runes: u32,
+    pub mithril: u32,
+    pub provisions: u32,
+    pub runestones: u32,
 }
 
 impl Resources {
@@ -17,16 +17,16 @@ impl Resources {
         self.gold += amount;
     }
 
-    pub fn add_ore(&mut self, amount: u32) {
-        self.ore += amount;
+    pub fn add_mithril(&mut self, amount: u32) {
+        self.mithril += amount;
     }
 
-    pub fn add_beer(&mut self, amount: u32) {
-        self.beer += amount;
+    pub fn add_provisions(&mut self, amount: u32) {
+        self.provisions += amount;
     }
 
-    pub fn add_runes(&mut self, amount: u32) {
-        self.runes += amount;
+    pub fn add_runestones(&mut self, amount: u32) {
+        self.runestones += amount;
     }
 
     pub fn spend_gold(&mut self, amount: u32) -> bool {

@@ -13,11 +13,21 @@ pub struct ZoneLabel {
 
 pub fn location_zone_color(zone: LocationZone) -> Color {
     match zone {
-        LocationZone::MineEntrance => Color::rgb(0.4, 0.35, 0.3),
-        LocationZone::Forge => Color::rgb(0.6, 0.25, 0.1),
-        LocationZone::Tavern => Color::rgb(0.5, 0.35, 0.2),
-        LocationZone::MountainPeak => Color::rgb(0.5, 0.55, 0.6),
-        LocationZone::UndergroundCavern => Color::rgb(0.2, 0.15, 0.25),
+        LocationZone::Erebor => Color::rgb(0.45, 0.35, 0.2),     // Golden stone
+        LocationZone::Moria => Color::rgb(0.12, 0.1, 0.08),     // Deep cave darkness
+        LocationZone::Dale => Color::rgb(0.5, 0.35, 0.25),      // Warm marketplace brown
+        LocationZone::HelmsDeep => Color::rgb(0.35, 0.35, 0.4),  // Fortress grey
+        LocationZone::Mirkwood => Color::rgb(0.15, 0.25, 0.1),  // Dark forest green
+    }
+}
+
+pub fn location_border_color(zone: LocationZone) -> Color {
+    match zone {
+        LocationZone::Erebor => Color::rgb(0.83, 0.69, 0.22),   // Gold
+        LocationZone::Moria => Color::rgb(0.3, 0.2, 0.1),       // Bronze
+        LocationZone::Dale => Color::rgb(0.6, 0.45, 0.3),      // Copper
+        LocationZone::HelmsDeep => Color::rgb(0.6, 0.6, 0.65),  // Silver
+        LocationZone::Mirkwood => Color::rgb(0.2, 0.4, 0.2),    // Forest green
     }
 }
 
@@ -29,6 +39,7 @@ pub fn create_board_zone(
     height: f32,
 ) -> Entity {
     let color = location_zone_color(location.zone);
+    let border = location_border_color(location.zone);
 
     let zone_entity = commands.spawn((
         BoardZone {
@@ -44,7 +55,7 @@ pub fn create_board_zone(
                 ..default()
             },
             background_color: BackgroundColor(color),
-            border_color: BorderColor(Color::rgb(0.6, 0.5, 0.3)),
+            border_color: BorderColor(border),
             ..default()
         },
         Transform {
@@ -59,8 +70,8 @@ pub fn create_board_zone(
         TextBundle::from_section(
             &location.name,
             TextStyle {
-                font_size: 14.0,
-                color: Color::rgb(1.0, 0.9, 0.7),
+                font_size: 11.0,
+                color: Color::rgb(0.95, 0.85, 0.6),  // Warm gold text
                 ..default()
             },
         )
@@ -72,8 +83,8 @@ pub fn create_board_zone(
         TextBundle::from_section(
             &location.description,
             TextStyle {
-                font_size: 9.0,
-                color: Color::rgb(0.8, 0.75, 0.6),
+                font_size: 8.0,
+                color: Color::rgb(0.7, 0.65, 0.5),  // Muted gold
                 ..default()
             },
         )
@@ -85,8 +96,8 @@ pub fn create_board_zone(
         TextBundle::from_section(
             "Cards: 0",
             TextStyle {
-                font_size: 10.0,
-                color: Color::WHITE,
+                font_size: 9.0,
+                color: Color::rgb(0.9, 0.8, 0.6),
                 ..default()
             },
         )

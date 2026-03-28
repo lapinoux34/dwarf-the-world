@@ -2,11 +2,11 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LocationZone {
-    MineEntrance,
-    Forge,
-    Tavern,
-    MountainPeak,
-    UndergroundCavern,
+    Erebor,     // The Lonely Mountain - treasure room
+    Moria,      // Mines of Moria - cavern zones
+    Dale,       // Dale Marketplace - trade zone
+    HelmsDeep,  // Helm's Deep - defensive fortress
+    Mirkwood,   // Mirkwood Forest - dangerous wild
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
