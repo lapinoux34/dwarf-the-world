@@ -61,7 +61,7 @@ fn main() {
                             resizable: true,
                             decorations: true,
                             transparent: false,
-                            position: bevy::window::WindowPosition::Centered,
+                            position: bevy::window::WindowPosition::Centered(bevy::window::MonitorSelection::Primary),
                             ..Default::default()
                         }),
                         ..Default::default()
