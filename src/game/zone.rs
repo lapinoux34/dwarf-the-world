@@ -17,19 +17,19 @@ pub enum ZoneEffect {
 }
 
 impl ZoneEffect {
-    pub fn description(&self) -> &'static str {
+    pub fn description(&self) -> String {
         match self {
-            ZoneEffect::None => "No special effect",
-            ZoneEffect::GoldIncome(n) => &format!("+{} gold per card played", n),
-            ZoneEffect::GoldPerDwarf(n) => &format!("+{} gold per dwarf stationed", n),
-            ZoneEffect::OreIncome(n) => &format!("+{} ore per card played", n),
-            ZoneEffect::BeerIncome(n) => &format!("+{} beer/turn if 3+ cards", n),
-            ZoneEffect::DefenseBonus(n) => &format!("+{} defense to all defenders", n),
-            ZoneEffect::AttackBonus(n) => &format!("+{} attack to dwarves crafted here", n),
-            ZoneEffect::DrawCardOnPlay => "Draw +1 card when placing a card",
-            ZoneEffect::TradeBonus => "+1 gold per card played (trade bonus)",
-            ZoneEffect::DangerZone => "Monsters are stronger but drop more loot",
-            ZoneEffect::FoodPrevention => "Prevents beer shortage events",
+            ZoneEffect::None => "No special effect".to_string(),
+            ZoneEffect::GoldIncome(n) => format!("+{} gold per card played", n),
+            ZoneEffect::GoldPerDwarf(n) => format!("+{} gold per dwarf stationed", n),
+            ZoneEffect::OreIncome(n) => format!("+{} ore per card played", n),
+            ZoneEffect::BeerIncome(n) => format!("+{} beer/turn if 3+ cards", n),
+            ZoneEffect::DefenseBonus(n) => format!("+{} defense to all defenders", n),
+            ZoneEffect::AttackBonus(n) => format!("+{} attack to dwarves crafted here", n),
+            ZoneEffect::DrawCardOnPlay => "Draw +1 card when placing a card".to_string(),
+            ZoneEffect::TradeBonus => "+1 gold per card played (trade bonus)".to_string(),
+            ZoneEffect::DangerZone => "Monsters are stronger but drop more loot".to_string(),
+            ZoneEffect::FoodPrevention => "Prevents beer shortage events".to_string(),
         }
     }
 }
