@@ -4,6 +4,7 @@ mod logging;
 mod rendering;
 
 use bevy::prelude::*;
+use bevy::window::{Window, WindowPlugin};
 use game::{GameState, Phase};
 use rendering::{
     CardComponent, EntryPointComponent, EndTurnButton,
@@ -51,7 +52,18 @@ fn main() {
         logging::log_info("GameState created, entering App::run()...");
 
         App::new()
-            .add_plugins(DefaultPlugins)
+            .add_plugins(
+                DefaultPlugins
+                    .set(WindowPlugin {
+                        primary_window: Some(Window {
+                            title: "⚒ DWARF THE WORLD ⚒".to_string(),
+                            resolution: bevy::window::WindowResolution::new(1280.0, 720.0),
+                            resizable: true,
+                            ..Default::default()
+                        }),
+                        ..Default::default()
+                    })
+            )
             .insert_resource(GameResource { state: game_state })
             .add_systems(Startup, setup)
             .add_systems(Update, (
