@@ -38,20 +38,29 @@ fn main() {
     let cards = get_starter_cards();
     let game_state = GameState::new(cards);
 
-    App::new()
-        .add_plugins(DefaultPlugins)
-        .insert_resource(GameResource {
-            state: game_state,
-        })
-        .add_systems(Startup, setup)
-        .add_systems(Update, (
-            handle_card_click,
-            handle_entry_click,
-            handle_end_turn,
-            advance_phase_system,
-            update_ui,
-        ))
-        .run();
+    let app_result = std::panic::catch_unwind(|| {
+        App::new()
+            .add_plugins(DefaultPlugins)
+            .insert_resource(GameResource {
+                state: game_state,
+            })
+            .add_systems(Startup, setup)
+            .add_systems(Update, (
+                handle_card_click,
+                handle_entry_click,
+                handle_end_turn,
+                advance_phase_system,
+                update_ui,
+            ))
+            .run();
+    });
+
+    if app_result.is_err() {
+        logging::log_error("App crashed - check above for panic message");
+        eprintln!("\n=== CRASH DETECTED - press Enter to exit ===");
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).ok();
+    }
 }
 
 fn setup(
