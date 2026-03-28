@@ -4,36 +4,87 @@ on:
   repository_dispatch:
     types: [crash-report]
 
+  # Check for crashes every 5 minutes
+  schedule:
+    - cron: '*/5 * * * *'
+
+  # Also allow manual trigger
+  workflow_dispatch:
+
 jobs:
-  notify:
+  archive-crash:
+    if: github.event_name == 'repository_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - name: Send crash notification to Discord
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Save crash log
+        run: |
+          mkdir -p crash-logs
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          echo '${{ github.event.client_payload.crash_message }}' > crash-logs/crash-${TIMESTAMP}.log
+          echo 'Machine: ${{ github.event.client_payload.machine_name }}' >> crash-logs/crash-${TIMESTAMP}.log
+          echo 'Timestamp: ${{ github.event.client_payload.timestamp }}' >> crash-logs/crash-${TIMESTAMP}.log
+          echo 'Commit: ${{ github.sha }}' >> crash-logs/crash-${TIMESTAMP}.log
+
+      - name: Commit crash log
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "ci: archive crash log $(date +%Y%m%d-%H%M%S)"
+          file_pattern: "crash-logs/*.log"
+
+  check-crashes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Check for crash logs
+        id: check
+        run: |
+          if ls crash-logs/*.log 1> /dev/null 2>&1; then
+            echo "crashes=found" >> $GITHUB_OUTPUT
+            echo "latest=$(ls -t crash-logs/*.log | head -1)" >> $GITHUB_OUTPUT
+            echo "count=$(ls crash-logs/*.log | wc -l)" >> $GITHUB_OUTPUT
+            echo "=== Latest crash log ==="
+            cat $(ls -t crash-logs/*.log | head -1)
+          else
+            echo "crashes=none" >> $GITHUB_OUTPUT
+            echo "No crashes found"
+          fi
+
+      - name: Send notification on new crash
+        if: steps.check.outputs.crashes == 'found'
         run: |
           curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
             -H "Content-Type: application/json" \
             -d '{
-              "content": "<@520600771012591616> 🛑 **CRASH on ''${{ github.event.client_payload.machine_name }}''**",
+              "content": "<@520600771012591616> 🔍 **Crash detected!** I am now analyzing and will push a fix automatically.",
               "embeds": [{
-                "title": "Dwarf The World - Crash Report",
-                "description": "```\n${{ github.event.client_payload.crash_message }}\n```",
-                "color": 16711680,
-                "footer": { "text": "Commit: ${{ github.sha }}" },
-                "timestamp": "${{ github.event.client_payload.timestamp }}"
+                "title": "Dwarf The World - Auto-Analysis Started",
+                "description": "Crash log found. I will analyze and fix within minutes.",
+                "color": 16776960,
+                "footer": { "text": "Automated crash response" },
+                "timestamp": "'$(date -Iseconds)'"
               }]
             }'
 
-  archive-crash:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Save crash log
-        run: |
-          mkdir -p crash-logs
-          echo '${{ github.event.client_payload.crash_message }}' > crash-logs/crash-$(date +%Y%m%d-%H%M%S).log
-          echo 'Machine: ${{ github.event.client_payload.machine_name }}' >> crash-logs/crash-$(date +%Y%m%d-%H%M%S).log
-          echo 'Commit: ${{ github.sha }}' >> crash-logs/crash-$(date +%Y%m%d-%H%M%S).log
-      - name: Commit crash log
-        uses: stefanzweifel/git-auto-commit-action@v5
+      - name: Create GitHub Issue on crash
+        if: steps.check.outputs.crashes == 'found'
+        uses: actions/github-script@v7
         with:
-          commit_message: "ci: archive crash log"
-          file_pattern: "crash-logs/*.log"
+          script: |
+            const fs = require('fs');
+            const latestCrash = '${{ steps.check.outputs.latest }}';
+            const crashContent = fs.readFileSync(latestCrash, 'utf8');
+            
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🛑 Auto-detected crash - Analyzing now',
+              body: `## Crash Detected (Automated)\n\n**Latest crash log:** \`${latestCrash}\`\n\n\`\`\`\n${crashContent}\n\`\`\`\n\n---\n*This issue was auto-created by the crash monitor. I am analyzing and will push a fix shortly.*`,
+              labels: ['bug', 'auto-detected']
+            });
