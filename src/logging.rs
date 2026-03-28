@@ -8,6 +8,7 @@ use std::time::SystemTime;
 
 static LOG_FILE: Mutex<Option<PathBuf>> = Mutex::new(None);
 static DISCORD_SENT: Mutex<bool> = Mutex::new(false);
+static LAST_DISCORD_SENT: Mutex<u64> = Mutex::new(0);
 
 pub fn setup_logging() {
     let log_dir = PathBuf::from(".logs");
@@ -144,6 +145,16 @@ fn write_crash_log_fallback(crash_message: &str) {
 }
 
 fn send_to_discord(message: &str, level: &str) {
+    // Throttle: only send if 30 seconds have passed
+    let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap_or_default().as_secs();
+    let mut last_sent = LAST_DISCORD_SENT.lock().unwrap();
+    if now - *last_sent < 30 && level != "INFO" {
+        eprintln!("[Discord] Throttled ({}s ago), skipping.", now - *last_sent);
+        return;
+    }
+    *last_sent = now;
+    drop(last_sent);
+
     // Prevent duplicate sends for non-errors
     if level != "ERROR" && level != "PANIC" && *DISCORD_SENT.lock().unwrap() {
         return;
