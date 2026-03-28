@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use super::entry_point::EntryType;
+use super::entry_point::ZoneType;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CardType {
@@ -129,7 +129,7 @@ pub struct Card {
     pub card_type: CardType,
     pub cost: resourceCost,
     pub effect: Option<CardEffect>,
-    pub entry_type: EntryType,
+    pub entry_type: ZoneType,
     pub art_prompt: String,
     pub faction: Option<DwarfFaction>,
     pub tier: u32,
@@ -144,7 +144,7 @@ impl Card {
         card_type: CardType,
         cost: resourceCost,
         effect: Option<CardEffect>,
-        entry_type: EntryType,
+        entry_type: ZoneType,
         art_prompt: &str,
         faction: Option<DwarfFaction>,
         tier: u32,

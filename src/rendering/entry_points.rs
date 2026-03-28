@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::game::{EntryPoint, EntryType};
+use crate::game::{EntryPoint, ZoneType};
 
 #[derive(Component)]
 pub struct EntryPointComponent {
@@ -11,29 +11,29 @@ pub struct EntryLabel {
     pub entry_id: u32,
 }
 
-pub fn entry_type_color(entry_type: EntryType) -> Color {
+pub fn entry_type_color(entry_type: ZoneType) -> Color {
     match entry_type {
-        EntryType::Trade => Color::rgb(0.55, 0.4, 0.25),
-        EntryType::Wealth => Color::rgb(0.83, 0.69, 0.22),
-        EntryType::Resource => Color::rgb(0.45, 0.35, 0.3),
-        EntryType::Supply => Color::rgb(0.6, 0.45, 0.3),
-        EntryType::Military => Color::rgb(0.4, 0.35, 0.4),
-        EntryType::Production => Color::rgb(0.6, 0.25, 0.1),
-        EntryType::Recruitment => Color::rgb(0.5, 0.35, 0.2),
-        EntryType::Any => Color::rgb(0.4, 0.4, 0.35),
+        ZoneType::Trade => Color::rgb(0.55, 0.4, 0.25),
+        ZoneType::Wealth => Color::rgb(0.83, 0.69, 0.22),
+        ZoneType::Resource => Color::rgb(0.45, 0.35, 0.3),
+        ZoneType::Supply => Color::rgb(0.6, 0.45, 0.3),
+        ZoneType::Military => Color::rgb(0.4, 0.35, 0.4),
+        ZoneType::Production => Color::rgb(0.6, 0.25, 0.1),
+        ZoneType::Recruitment => Color::rgb(0.5, 0.35, 0.2),
+        ZoneType::Any => Color::rgb(0.4, 0.4, 0.35),
     }
 }
 
-pub fn entry_border_color(entry_type: EntryType) -> Color {
+pub fn entry_border_color(entry_type: ZoneType) -> Color {
     match entry_type {
-        EntryType::Trade => Color::rgb(0.72, 0.53, 0.2),
-        EntryType::Wealth => Color::rgb(1.0, 0.85, 0.3),
-        EntryType::Resource => Color::rgb(0.5, 0.4, 0.3),
-        EntryType::Supply => Color::rgb(0.6, 0.45, 0.3),
-        EntryType::Military => Color::rgb(0.6, 0.6, 0.65),
-        EntryType::Production => Color::rgb(0.8, 0.35, 0.1),
-        EntryType::Recruitment => Color::rgb(0.6, 0.4, 0.2),
-        EntryType::Any => Color::rgb(0.5, 0.45, 0.4),
+        ZoneType::Trade => Color::rgb(0.72, 0.53, 0.2),
+        ZoneType::Wealth => Color::rgb(1.0, 0.85, 0.3),
+        ZoneType::Resource => Color::rgb(0.5, 0.4, 0.3),
+        ZoneType::Supply => Color::rgb(0.6, 0.45, 0.3),
+        ZoneType::Military => Color::rgb(0.6, 0.6, 0.65),
+        ZoneType::Production => Color::rgb(0.8, 0.35, 0.1),
+        ZoneType::Recruitment => Color::rgb(0.6, 0.4, 0.2),
+        ZoneType::Any => Color::rgb(0.5, 0.45, 0.4),
     }
 }
 
