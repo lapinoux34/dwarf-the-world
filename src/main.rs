@@ -88,9 +88,7 @@ fn main() {
             ))
             .run();
 
-        // Give window time to appear
-        std::thread::sleep(std::time::Duration::from_secs(3));
-        logging::log_error("WINDOW DID NOT APPEAR - App::run() returned but no window was shown. GPU/driver crash or Bevy initialization failure.");
+        // App::run() blocks until window is closed - no artificial check needed
         0
     }).unwrap_or_else(|_| {
         logging::log_error("Process panicked before App::run()");
