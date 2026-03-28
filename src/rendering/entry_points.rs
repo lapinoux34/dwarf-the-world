@@ -7,9 +7,7 @@ pub struct EntryPointComponent {
 }
 
 #[derive(Component)]
-pub struct EntryLabel {
-    pub entry_id: u32,
-}
+pub struct EntryLabel;
 
 pub fn entry_type_color(entry_type: ZoneType) -> Color {
     match entry_type {
@@ -72,7 +70,7 @@ pub fn create_entry_point_ui(
 
     // Entry name
     let name_entity = commands.spawn((
-        EntryLabel { entry_id: entry.id },
+        EntryLabel,
         TextBundle::from_section(
             &entry.name,
             TextStyle {
