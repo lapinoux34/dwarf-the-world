@@ -1,6 +1,5 @@
 use super::card::{Card, Resources, CardEffect};
 use super::entry_point::{EntryPoint, get_entry_points};
-use super::event::GameEvent;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Phase {
@@ -23,7 +22,6 @@ pub struct GameState {
     pub selected_card: Option<Card>,
     pub selected_entry: Option<u32>,
     pub darkness_level: f32,
-    pub current_event: Option<GameEvent>,
     pub player_hp: u32,
 }
 
@@ -42,7 +40,6 @@ impl GameState {
             selected_card: None,
             selected_entry: None,
             darkness_level: 0.0,
-            current_event: None,
             player_hp: 30,
         }
     }
@@ -159,13 +156,6 @@ impl GameState {
         self.selected_entry = None;
     }
 
-    pub fn get_entry(&self, id: u32) -> Option<&EntryPoint> {
-        self.entry_points.iter().find(|e| e.id == id)
-    }
-
-    pub fn get_entry_mut(&mut self, id: u32) -> Option<&mut EntryPoint> {
-        self.entry_points.iter_mut().find(|e| e.id == id)
-    }
 
     pub fn advance_phase(&mut self) {
         self.phase = match self.phase {

@@ -1,19 +1,11 @@
 use bevy::prelude::*;
 use crate::game::card::{Card, CardType, DwarfFaction};
-use crate::game::ZoneType;
 
 #[derive(Component)]
 pub struct CardComponent {
     pub card: Card,
-    pub is_selected: bool,
-}
-
-#[derive(Component)]
-pub struct CardInHand;
-
-#[derive(Component)]
-pub struct CardOnBoard {
-    pub location_id: u32,
+    // Unused - kept for future selection state
+    // pub is_selected: bool,
 }
 
 pub fn card_color(card_type: CardType, faction: Option<DwarfFaction>) -> Color {
@@ -70,7 +62,6 @@ pub fn create_card_ui(
     let card_entity = commands.spawn((
         CardComponent {
             card: card.clone(),
-            is_selected: false,
         },
         NodeBundle {
             style: Style {
@@ -87,7 +78,17 @@ pub fn create_card_ui(
         },
     )).id();
 
-    commands.entity(card_entity).insert(Transform::from_translation(position).with_scale(scale));
+    // Position cards using Style for UI positioning
+    // position.x = world X (center-origin), position.y = world Y (center-origin)
+    // For 1280x720 screen: screen_left = x + 640, screen_bottom = 360 - y
+    commands.entity(card_entity).insert(
+        Style {
+            position_type: PositionType::Absolute,
+            left: Val::Px(position.x + 640.0),
+            bottom: Val::Px(360.0 - position.y),
+            ..default()
+        }
+    );
 
     // Card name
     let name_entity = commands.spawn(
@@ -174,10 +175,4 @@ pub fn create_card_ui(
     card_entity
 }
 
-pub fn highlight_card(card_query: &mut Query<(&CardComponent, &mut BackgroundColor, &mut BorderColor)>, card_id: u32) {
-    for (card_comp, mut bg, mut border) in card_query.iter_mut() {
-        if card_comp.card.id == card_id {
-            *border = BorderColor(Color::rgb(1.0, 0.9, 0.5)); // Bright gold when selected
-        }
-    }
-}
+

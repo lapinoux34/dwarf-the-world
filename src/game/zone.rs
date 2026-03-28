@@ -206,7 +206,7 @@ impl WorldZone {
         let mut gold = 0;
         let mut ore = 0;
         let mut beer = 0;
-        let mut food = 0;
+        let food = 0;
 
         match self.zone_effect {
             ZoneEffect::GoldIncome(n) => gold += n * card_count,
