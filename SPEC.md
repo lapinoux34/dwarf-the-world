@@ -243,3 +243,143 @@ rand = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ```
+
+---
+
+## 11. Balancing Philosophy
+
+### Core Principle: "Hard but Fair"
+
+This game follows the **Slay the Spire philosophy**:
+- Every run should feel winnable if you play perfectly
+- Deaths should feel "I could have played better"
+- Never die to RNG with no counterplay
+- Give players meaningful choices every turn
+
+### Difficulty Curve
+
+| Phase | Days | Difficulty | Description |
+|-------|------|------------|-------------|
+| **Tutorial** | 1-30 | Very Easy | Grace period. Build economy. Learn mechanics. |
+| **Early** | 31-100 | Easy | Mild threats. Establish defenses. |
+| **Mid** | 101-200 | Moderate | Real threats appear. Resource management critical. |
+| **Late** | 201-299 | Hard | Multiple threats. Desperation mode. |
+| **Final** | 300 | Brutal BOSS | THE BALROG - winnable with preparation. |
+
+### Card Cost Formula
+
+**Rule of Thumb:** A card should "pay off" its cost within 5-7 turns of value generation.
+
+| Cost (gold equivalent) | Value Generation | Examples |
+|----------------------|------------------|----------|
+| 1-2 | 1/turn | Basic miners, settlers |
+| 3-4 | 2/turn | Goldsmiths, mid-tier defenders |
+| 5-6 | 3/turn | Heroes, elite defenders |
+| 7-8 | 4+/turn | Thorin, game-changers |
+
+**Attack/Defense Valuation:**
+- 1 ATK or 1 DEF ≈ 1 gold value
+- Defenders should have high defense relative to attack
+- Attackers can be glass cannons
+
+### Resource Economy Scaling
+
+Resources scale with day progression to maintain challenge:
+
+| Day | Base Gold/Turn | Max Threat | Expected Defenses |
+|-----|---------------|------------|-------------------|
+| 1-30 | 2-3 | 0 | 0-2 |
+| 31-100 | 3-5 | 1-2 | 2-4 |
+| 101-200 | 5-8 | 2-3 | 4-7 |
+| 201-299 | 8-12 | 3-4 | 7-10 |
+| 300 | 12-15 | 5 (BOSS) | 10+ to win |
+
+### Event Balance
+
+**Event Frequency:**
+- Early game: ~30% chance per day
+- Late game: ~70% chance per day
+- Always a chance to prepare
+
+**Event Types:**
+- **Positive events:** ~40% of events (Trade, Festival, Discovery)
+- **Negative events:** ~60% of events (Raid, Ambush, Attack)
+
+**No Instant-Kill Events:**
+- Maximum threat per event: 4 (Day 201-299)
+- Day 300 Balrog: 5, but beatable
+- Always give player 1+ turn warning
+
+### Zone Balance
+
+| Zone | Advantage | Risk | Strategy |
+|------|-----------|------|----------|
+| **Mountain Pass** | +2 DEF bonus | High-value target | Fortify early |
+| **Erebor Treasury** | +1 gold/dwarf | Nazgul target | Mobile defense |
+| **Moria Mines** | +1 ore/card | Troll attacks | Stay defended |
+| **River Dock** | Draw card on play | Warg attacks | Card advantage |
+| **Dwarven Forge** | +1 ATK bonus | Rarely attacked | Build attackers |
+| **Mirkwood Border** | More loot | Monsters stronger | High risk/reward |
+| **Dale Farmlands** | Prevents beer shortage | Rarely attacked | Keep protected |
+
+### Synergy Bonuses (Zone-Specific)
+
+These bonuses reward strategic card placement:
+
+| Zone | Synergy | Bonus | Threshold |
+|------|---------|-------|-----------|
+| Moria Mines | 3+ Miners | +2 ore/turn | "Mine rush" |
+| Dwarven Forge | 2+ Builders | +1 ATK all dwarves | "Production line" |
+| Mountain Pass | 5+ Defenders | Fortress impenetrable | "Hold the line" |
+| Tavern + Marketplace | Both present | Beer x2 | "Party economy" |
+
+### Win Condition
+
+**Day 300 - THE BALROG OF MORIA:**
+- Appears at a random zone
+- Has 12 ATK, 10 DEF, buffs nearby monsters
+- Total party defense needed: ~15+ to beat
+- **Winnable if:**
+  - Fortified Mountain Pass (5 defenders + 2 zone bonus = 7+ DEF)
+  - Elite Guardian at Treasury
+  - Thorin or Gimli with +2 ATK buff
+  - 2-3 other defenders totaling 10+ DEF
+
+### Loss Conditions
+
+1. **All zones lost:** All cards destroyed, no presence
+2. **Bankruptcy:** 0 gold for 3+ turns with no recovery options
+3. **Desertion:** (Future) Beer shortage causes mass departure
+
+### Playtesting Guidelines
+
+When balancing, verify:
+
+1. **Early game (Days 1-30):** Can player establish economy without pressure?
+2. **Mid game (Days 101-200):** Are decisions meaningful? Is there variety?
+3. **Late game (Days 201-299):** Is it hard but not frustrating?
+4. **Day 300:** Is the Balrog beatable with perfect play?
+
+### Anti-Frustration Rules
+
+1. **No random one-shots:** Minimum 1 turn warning before zone destruction
+2. **Comeback mechanics:** Positive events scale with difficulty
+3. **Deck cycling:** Discard pile reshuffles when deck empty
+4. **Gold floor:** Never start a turn with 0 gold AND 0 income
+
+### Known Balance Levers
+
+These values can be tuned to adjust difficulty:
+
+```rust
+// In event.rs
+const GRACE_PERIOD_DAYS: u32 = 30;      // Increase for easier
+const EARLY_THREAT_MAX: u32 = 2;        // Decrease for easier
+const LATE_THREAT_MAX: u32 = 4;         // Decrease for easier
+const BALROG_STATS: (u32, u32) = (12, 10); // Tune for harder/easier win
+
+// In cards.rs
+const RESOURCE_PAYOFF_TURNS: u32 = 5;  // Cards should pay back in 5-7 turns
+const TIER_COST_MULTIPLIER: f32 = 1.2; // Each tier costs ~20% more
+```
+
