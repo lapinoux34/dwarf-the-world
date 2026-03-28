@@ -1,0 +1,39 @@
+name: Crash Monitor
+
+on:
+  repository_dispatch:
+    types: [crash-report]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send crash notification to Discord
+        run: |
+          curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "content": "<@520600771012591616> 🛑 **CRASH on ''${{ github.event.client_payload.machine_name }}''**",
+              "embeds": [{
+                "title": "Dwarf The World - Crash Report",
+                "description": "```\n${{ github.event.client_payload.crash_message }}\n```",
+                "color": 16711680,
+                "footer": { "text": "Commit: ${{ github.sha }}" },
+                "timestamp": "${{ github.event.client_payload.timestamp }}"
+              }]
+            }'
+
+  archive-crash:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save crash log
+        run: |
+          mkdir -p crash-logs
+          echo '${{ github.event.client_payload.crash_message }}' > crash-logs/crash-$(date +%Y%m%d-%H%M%S).log
+          echo 'Machine: ${{ github.event.client_payload.machine_name }}' >> crash-logs/crash-$(date +%Y%m%d-%H%M%S).log
+          echo 'Commit: ${{ github.sha }}' >> crash-logs/crash-$(date +%Y%m%d-%H%M%S).log
+      - name: Commit crash log
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "ci: archive crash log"
+          file_pattern: "crash-logs/*.log"
