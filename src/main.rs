@@ -69,6 +69,8 @@ fn main() {
                             resizable: true,
                             decorations: true,
                             transparent: false,
+                            focused: true,
+                            visible: true,
                             position: bevy::window::WindowPosition::Centered(bevy::window::MonitorSelection::Primary),
                             ..Default::default()
                         }),
