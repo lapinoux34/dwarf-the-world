@@ -66,12 +66,6 @@ fn main() {
                         primary_window: Some(Window {
                             title: "⚒ DWARF THE WORLD ⚒ - GAME WINDOW".to_string(),
                             resolution: bevy::window::WindowResolution::new(1280.0, 720.0),
-                            resizable: true,
-                            decorations: true,
-                            transparent: false,
-                            focused: true,
-                            visible: true,
-                            position: bevy::window::WindowPosition::At(bevy::math::IVec2::new(100, 100)),
                             ..Default::default()
                         }),
                         ..Default::default()
@@ -88,8 +82,6 @@ fn main() {
             ))
             .run();
 
-        // App::run() returned - log before exiting
-        eprintln!("[INFO] App::run() returned - this line should appear if window was shown and closed normally");
         0
     }).unwrap_or_else(|_| {
         logging::log_error("Process panicked before App::run()");
