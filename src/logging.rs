@@ -31,7 +31,7 @@ pub fn setup_logging() {
     eprintln!("{}", webhook_status);
 
     // Send startup ping to Discord so we know the system works
-    send_to_discord("🟢 **Dwarf The World** launched - waiting for game...", "INFO");
+    send_to_discord("🟢 **Dwarf The World** launched", "INFO");
 }
 
 pub fn log_error(msg: &str) {
@@ -40,6 +40,7 @@ pub fn log_error(msg: &str) {
         log_to_file(path, "ERROR", msg);
     }
     send_to_discord(msg, "ERROR");
+    trigger_github_dispatch(msg);
 }
 
 pub fn log_info(msg: &str) {
@@ -63,9 +64,67 @@ fn log_to_file(path: &PathBuf, level: &str, msg: &str) {
     }
 }
 
+fn trigger_github_dispatch(crash_message: &str) {
+    let github_token = match env::var("GITHUB_PAT") {
+        Ok(t) if !t.is_empty() => t,
+        _ => {
+            eprintln!("[GitHub] GITHUB_PAT not set - skipping dispatch");
+            return;
+        }
+    };
+
+    eprintln!("[GitHub] Triggering repository dispatch...");
+
+    let hostname = env::var("COMPUTERNAME")
+        .or_else(|_| env::var("HOSTNAME"))
+        .unwrap_or_else(|_| "UnknownPC".to_string());
+
+    let payload = serde_json::json!({
+        "event_type": "crash-report",
+        "client_payload": {
+            "crash_message": crash_message,
+            "machine_name": hostname,
+            "timestamp": chrono::Utc::now().to_rfc3339()
+        }
+    });
+
+    let client = match reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+    {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("[GitHub] Failed to build HTTP client: {}", e);
+            return;
+        }
+    };
+
+    let resp = client
+        .post("https://api.github.com/repos/lapinoux34/dwarf-the-world/dispatches")
+        .header("Authorization", format!("Bearer {}", github_token))
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28")
+        .header("Content-Type", "application/json")
+        .body(serde_json::to_string(&payload).unwrap_or_default())
+        .send();
+
+    match resp {
+        Ok(r) => {
+            if r.status().is_success() || r.status().as_u16() == 204 {
+                eprintln!("[GitHub] Dispatch triggered successfully!");
+            } else {
+                eprintln!("[GitHub] Dispatch failed with status: {}", r.status());
+            }
+        }
+        Err(e) => {
+            eprintln!("[GitHub] Dispatch request failed: {}", e);
+        }
+    }
+}
+
 fn send_to_discord(message: &str, level: &str) {
-    // Prevent duplicate sends
-    if *DISCORD_SENT.lock().unwrap() {
+    // Prevent duplicate sends for non-errors
+    if level != "ERROR" && level != "PANIC" && *DISCORD_SENT.lock().unwrap() {
         return;
     }
 
@@ -78,8 +137,6 @@ fn send_to_discord(message: &str, level: &str) {
         });
 
     eprintln!("[Discord] Sending {} notification to Discord...", level);
-
-    eprintln!("[Discord] Sending {} notification...", level);
 
     let color = match level {
         "PANIC" | "ERROR" => 0xFF0000u32,
@@ -128,7 +185,9 @@ fn send_to_discord(message: &str, level: &str) {
         Ok(resp) => {
             if resp.status().is_success() {
                 eprintln!("[Discord] {} notification sent successfully!", level);
-                *DISCORD_SENT.lock().unwrap() = true;
+                if level == "ERROR" || level == "PANIC" {
+                    *DISCORD_SENT.lock().unwrap() = true;
+                }
             } else {
                 eprintln!("[Discord] Failed to send - status: {}", resp.status());
             }
