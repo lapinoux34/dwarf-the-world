@@ -98,6 +98,18 @@ fn write_crash_log_fallback(crash_message: &str) {
 
     eprintln!("[GitHub] Crash log written to {}/{}", crash_dir.display(), filename);
 
+    // Throttle GitHub pushes to once per 5 minutes
+    let last_push_file = std::path::PathBuf::from(".logs").join("last_crash_push");
+    if let Ok(metadata) = std::fs::metadata(&last_push_file) {
+        if let Ok(elapsed) = metadata.modified() {
+            if std::time::SystemTime::now().duration_since(elapsed).map(|d| d.as_secs() < 300).unwrap_or(false) {
+                eprintln!("[GitHub] Throttled - last push {}s ago, skipping.", 
+                    std::time::SystemTime::now().duration_since(elapsed).unwrap_or_default().as_secs());
+                return;
+            }
+        }
+    }
+
     // Try to git add + commit + push the crash log
     let result = std::process::Command::new("git")
         .args(["add", &path.to_string_lossy()])
@@ -127,7 +139,8 @@ fn write_crash_log_fallback(crash_message: &str) {
                         .output();
                     if let Ok(push_out) = push_result {
                         if push_out.status.success() {
-                            eprintln!("[GitHub] Crash log pushed to GitHub!");
+                            eprintln!("[GitHub] Crash log pushed to GitHub!"); 
+                            let _ = std::fs::write(".logs/last_crash_push", &timestamp);
                         } else {
                             eprintln!("[GitHub] Push failed: {}", String::from_utf8_lossy(&push_out.stderr));
                         }
