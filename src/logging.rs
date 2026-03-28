@@ -26,7 +26,12 @@ pub fn setup_logging() {
 
     log_to_file(&log_path, "INFO", "=== Dwarf The World Started ===");
     println!("Logs: .logs/dwarf_the_world.log");
-    println!("Set DISCORD_WEBHOOK_URL env var to receive error alerts on Discord.");
+
+    if env::var("DISCORD_WEBHOOK_URL").map(|s| !s.is_empty()).unwrap_or(false) {
+        println!("[OK] Discord webhook configured - errors will be sent to Discord");
+    } else {
+        println!("[WARN] DISCORD_WEBHOOK_URL not set - set it to receive crash alerts on Discord");
+    }
 }
 
 pub fn log_error(msg: &str) {
@@ -66,8 +71,14 @@ fn log_to_file(path: &PathBuf, level: &str, msg: &str) {
 
 fn send_to_discord(message: &str, level: &str) {
     let webhook_url = match env::var("DISCORD_WEBHOOK_URL") {
-        Ok(url) if !url.is_empty() => url,
-        _ => return,
+        Ok(url) if !url.is_empty() => {
+            eprintln!("[Discord] Webhook configured, sending {}...", level);
+            url
+        },
+        _ => {
+            eprintln!("[Discord] DISCORD_WEBHOOK_URL not set - skipping Discord notification");
+            return;
+        }
     };
 
     let color = match level {
