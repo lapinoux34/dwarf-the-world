@@ -1,5 +1,3 @@
 pub mod cards;
-pub mod locations;
 
-pub use cards::*;
-pub use locations::*;
+pub use cards::get_starter_cards;

@@ -1,13 +1,7 @@
-pub mod board;
 pub mod card;
-pub mod combat;
-pub mod deck;
-pub mod economy;
+pub mod entry_point;
+pub mod event;
 pub mod state;
 
-pub use board::*;
-pub use card::*;
-pub use combat::*;
-pub use deck::*;
-pub use economy::*;
-pub use state::*;
+pub use entry_point::{EntryPoint, EntryType, ResourceYield, get_entry_points};
+pub use state::{GameState, Phase};

@@ -3,17 +3,23 @@ mod game;
 mod rendering;
 
 use bevy::prelude::*;
-use game::{GameState, Phase, CardType};
-use rendering::{CardComponent, BoardZone, EndTurnButton, DayCounter, DarknessIndicator, PhaseIndicator, ResourcesDisplay};
-use rendering::ui::{create_top_bar, create_hand_area, create_end_turn_button, update_day_counter, update_darkness_indicator, update_phase_indicator, update_resources_display};
-use rendering::board::create_board_zone;
+use game::{Card, CardType, EntryType, Phase};
+use rendering::{
+    CardComponent, EntryPointComponent, EndTurnButton,
+    DayCounter, DarknessIndicator, PhaseIndicator, ResourcesDisplay,
+};
+use rendering::ui::{
+    create_top_bar, create_hand_area, create_end_turn_button,
+    update_day_counter, update_darkness_indicator, update_phase_indicator,
+    update_resources_display,
+};
+use rendering::entry_points::create_entry_point_ui;
 use rendering::cards::create_card_ui;
-use data::{get_starter_cards, get_starter_locations};
+use data::get_starter_cards;
 
 #[derive(Resource)]
 struct GameResource {
-    state: GameState,
-    locations: Vec<game::BoardLocation>,
+    state: game::GameState,
 }
 
 #[derive(Component)]
@@ -21,19 +27,17 @@ struct CardInHand;
 
 fn main() {
     let cards = get_starter_cards();
-    let locations = get_starter_locations();
-    let game_state = GameState::new(cards.clone(), locations.clone());
+    let game_state = game::GameState::new(cards);
 
     App::new()
         .add_plugins(DefaultPlugins)
         .insert_resource(GameResource {
             state: game_state,
-            locations,
         })
         .add_systems(Startup, setup)
         .add_systems(Update, (
             handle_card_click,
-            handle_zone_click,
+            handle_entry_click,
             handle_end_turn,
             advance_phase_system,
             update_ui,
@@ -59,34 +63,35 @@ fn setup(
         ..default()
     });
 
-    // Top bar
+    // Top bar with resources
     create_top_bar(&mut commands);
 
-    // Board zones - Tolkien locations
-    let zone_width = 190.0;
-    let zone_height = 145.0;
-    let start_x = -420.0;
-    let start_y = 50.0;
-    let gap_x = 210.0;
-    let gap_y = 170.0;
+    // World map - 8 entry points in a grid
+    let entry_width = 180.0;
+    let entry_height = 130.0;
+    let start_x = -380.0;
+    let start_y = 80.0;
+    let gap_x = 200.0;
+    let gap_y = 150.0;
+    let cols = 4;
 
-    for (i, loc) in game_res.locations.iter().enumerate() {
-        let row = i / 3;
-        let col = i % 3;
+    for (i, entry) in game_res.state.entry_points.iter().enumerate() {
+        let row = i / cols;
+        let col = i % cols;
         let x = start_x + (col as f32) * gap_x;
         let y = start_y - (row as f32) * gap_y;
-        create_board_zone(&mut commands, loc, Vec3::new(x, y, 0.0), zone_width, zone_height);
+        create_entry_point_ui(&mut commands, entry, Vec3::new(x, y, 0.0), entry_width, entry_height);
     }
 
-    // Hand area
+    // Hand area at bottom
     create_hand_area(&mut commands);
 
     // End turn button
     create_end_turn_button(&mut commands);
 
-    // Initial draw
-    game_res.state.draw_card();
-    game_res.state.phase = Phase::Play;
+    // Initial draw - start in Day phase
+    game_res.state.draw_cards(3);
+    game_res.state.phase = Phase::Day;
 
     // Spawn initial hand
     spawn_hand(&mut commands, &mut game_res);
@@ -97,7 +102,7 @@ fn spawn_hand(commands: &mut Commands, game_res: &mut GameResource) {
     if hand_size == 0 {
         return;
     }
-    let card_width = 105.0;
+    let card_width = 95.0;
     let total_width = (hand_size as f32) * card_width;
     let start_x = -total_width / 2.0 + card_width / 2.0;
 
@@ -124,18 +129,16 @@ fn handle_card_click(
     }
 }
 
-fn handle_zone_click(
+fn handle_entry_click(
     mut game_res: ResMut<GameResource>,
-    zone_query: Query<(&BoardZone, &Interaction), Changed<Interaction>>,
+    entry_query: Query<(&EntryPointComponent, &Interaction), Changed<Interaction>>,
 ) {
-    for (zone, interaction) in zone_query.iter() {
+    for (entry_comp, interaction) in entry_query.iter() {
         if *interaction == Interaction::Pressed {
             if let Some(ref card) = game_res.state.selected_card {
-                if card.card_type == CardType::Dwarf {
-                    let card_clone = card.clone();
-                    game_res.state.play_card(&card_clone, zone.location_id);
-                    game_res.state.selected_card = None;
-                }
+                game_res.state.selected_entry = Some(entry_comp.entry_id);
+                let card_clone = card.clone();
+                game_res.state.play_card(&card_clone, entry_comp.entry_id);
             }
         }
     }
@@ -147,31 +150,15 @@ fn handle_end_turn(
 ) {
     for interaction in button_query.iter() {
         if *interaction == Interaction::Pressed {
-            game_res.state.phase = Phase::Combat;
+            // Collect resources
+            game_res.state.collect_resources();
 
-            let mut dead_cards: Vec<(u32, u32)> = Vec::new();
+            // Advance day
+            game_res.state.advance_day();
 
-            for (&loc_id, cards) in game_res.state.board.iter_mut() {
-                let mut dwarves: Vec<_> = cards.iter().filter(|c| c.card_type == CardType::Dwarf).cloned().collect();
-                let mut monsters: Vec<_> = cards.iter().filter(|c| c.card_type == CardType::Monster).cloned().collect();
-
-                let (dwarf_results, monster_results) = game::resolve_combat_on_location(&mut dwarves, &mut monsters);
-
-                for result in dwarf_results.iter().chain(monster_results.iter()) {
-                    if result.destroyed {
-                        dead_cards.push((result.card.id, loc_id));
-                    }
-                }
-            }
-
-            for (card_id, loc_id) in dead_cards {
-                if let Some(cards) = game_res.state.board.get_mut(&loc_id) {
-                    cards.retain(|c| c.id != card_id);
-                }
-            }
-
-            game_res.state.end_turn();
-            game_res.state.draw_card();
+            // Draw new hand
+            game_res.state.draw_cards(3);
+            game_res.state.phase = Phase::Day;
         }
     }
 }
@@ -198,24 +185,22 @@ fn update_ui(
     let state = &game_res.state;
 
     update_day_counter(&mut day_query, state.day);
-
-    // Calculate darkness level based on day (0-300)
-    let darkness = (state.day as f32 / 300.0).min(1.0);
-    update_darkness_indicator(&mut dark_query, darkness);
+    update_darkness_indicator(&mut dark_query, state.darkness_level);
 
     let phase_str = match state.phase {
-        Phase::Draw => "Draw",
-        Phase::Play => "Play",
-        Phase::Combat => "Combat",
-        Phase::EndTurn => "End Turn",
+        Phase::Dawn => "Dawn",
+        Phase::Day => "Day",
+        Phase::Dusk => "Dusk",
+        Phase::Night => "Night",
+        Phase::EndTurn => "End",
     };
     update_phase_indicator(&mut phase_query, phase_str);
 
     update_resources_display(
         &mut resources_query,
         state.resources.gold,
-        state.resources.mithril,
-        state.resources.provisions,
-        state.resources.runestones,
+        state.resources.ore,
+        state.resources.beer,
+        state.resources.food,
     );
 }
