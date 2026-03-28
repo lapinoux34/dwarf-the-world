@@ -1,5 +1,6 @@
 mod data;
 mod game;
+mod logging;
 mod rendering;
 
 use bevy::prelude::*;
@@ -26,6 +27,14 @@ struct GameResource {
 struct CardInHand;
 
 fn main() {
+    logging::setup_logging();
+
+    // Set up panic handler to catch crashes and send to Discord
+    std::panic::set_hook(Box::new(|panic_info| {
+        let msg = format!("Application panic: {}", panic_info);
+        logging::log_error(&msg);
+    }));
+
     let cards = get_starter_cards();
     let game_state = GameState::new(cards);
 
