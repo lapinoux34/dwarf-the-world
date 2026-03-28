@@ -48,6 +48,14 @@ fn main() {
         let cards = get_starter_cards();
         logging::log_info(&format!("Loaded {} cards", cards.len()));
 
+        // Check for problematic GPU backend settings
+        if let Ok(backend) = std::env::var("WGPU_BACKEND") {
+            if backend == "dx11" {
+                logging::log_error("WGPU_BACKEND=dx11 causes GPU panic - unset with: Remove-Item Env:WGPU_BACKEND");
+            }
+            logging::log_info(&format!("WGPU_BACKEND={}", backend));
+        }
+
         let game_state = GameState::new(cards);
         logging::log_info("GameState created, entering App::run()...");
 
