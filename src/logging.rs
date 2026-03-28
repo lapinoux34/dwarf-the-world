@@ -68,7 +68,8 @@ fn trigger_github_dispatch(crash_message: &str) {
     let github_token = match env::var("GITHUB_PAT") {
         Ok(t) if !t.is_empty() => t,
         _ => {
-            eprintln!("[GitHub] GITHUB_PAT not set - skipping dispatch");
+            eprintln!("[GitHub] GITHUB_PAT not set - writing to crash-logs/ for GitHub Actions cron");
+            write_crash_log_fallback(crash_message);
             return;
         }
     };
@@ -87,6 +88,9 @@ fn trigger_github_dispatch(crash_message: &str) {
             "timestamp": chrono::Utc::now().to_rfc3339()
         }
     });
+
+    // Also write fallback log in case dispatch fails
+    write_crash_log_fallback(crash_message);
 
     let client = match reqwest::blocking::Client::builder()
         .timeout(std::time::Duration::from_secs(10))
@@ -113,12 +117,77 @@ fn trigger_github_dispatch(crash_message: &str) {
             if r.status().is_success() || r.status().as_u16() == 204 {
                 eprintln!("[GitHub] Dispatch triggered successfully!");
             } else {
-                eprintln!("[GitHub] Dispatch failed with status: {}", r.status());
+                eprintln!("[GitHub] Dispatch failed with status: {} - crash log written to crash-logs/", r.status());
             }
         }
         Err(e) => {
-            eprintln!("[GitHub] Dispatch request failed: {}", e);
+            eprintln!("[GitHub] Dispatch request failed: {} - crash log written to crash-logs/", e);
         }
+    }
+}
+
+fn write_crash_log_fallback(crash_message: &str) {
+    // Write crash log that GitHub Actions cron can pick up
+    // The game pushes this to GitHub which triggers the workflow
+    let crash_dir = PathBuf::from("crash-logs");
+    std::fs::create_dir_all(&crash_dir).ok();
+
+    let hostname = env::var("COMPUTERNAME")
+        .or_else(|_| env::var("HOSTNAME"))
+        .unwrap_or_else(|_| "UnknownPC".to_string());
+
+    let timestamp = chrono::Utc::now().format("%Y%m%d-%H%M%S").to_string();
+    let filename = format!("crash-{}.log", timestamp);
+    let path = crash_dir.join(&filename);
+
+    let content = format!(
+        "Machine: {}\nTimestamp: {}\n\n{}\n",
+        hostname,
+        chrono::Utc::now().to_rfc3339(),
+        crash_message
+    );
+
+    if let Err(e) = std::fs::write(&path, &content) {
+        eprintln!("[GitHub] Failed to write crash log: {}", e);
+        return;
+    }
+
+    eprintln!("[GitHub] Crash log written to {}/{}", crash_dir.display(), filename);
+
+    // Try to git add + commit + push the crash log
+    let result = std::process::Command::new("git")
+        .args(["add", &path.to_string_lossy()])
+        .output();
+
+    if let Ok(output) = result {
+        if output.status.success() {
+            eprintln!("[GitHub] Crash log staged for commit");
+            // Commit and push
+            let commit_result = std::process::Command::new("git")
+                .args(["commit", "-m", &format!("ci: auto-archive crash log {}", timestamp)])
+                .output();
+            if let Ok(out) = commit_result {
+                if out.status.success() {
+                    eprintln!("[GitHub] Crash log committed");
+                    let push_result = std::process::Command::new("git")
+                        .args(["push", "origin", "main"])
+                        .output();
+                    if let Ok(push_out) = push_result {
+                        if push_out.status.success() {
+                            eprintln!("[GitHub] Crash log pushed to GitHub!");
+                        } else {
+                            eprintln!("[GitHub] Push failed: {}", String::from_utf8_lossy(&push_out.stderr));
+                        }
+                    }
+                } else {
+                    eprintln!("[GitHub] Commit failed: {}", String::from_utf8_lossy(&out.stderr));
+                }
+            }
+        } else {
+            eprintln!("[GitHub] git add failed: {}", String::from_utf8_lossy(&output.stderr));
+        }
+    } else {
+        eprintln!("[GitHub] Could not run git - is git installed?");
     }
 }
 
