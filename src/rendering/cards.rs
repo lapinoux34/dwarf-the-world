@@ -85,12 +85,9 @@ pub fn create_card_ui(
             border_color: BorderColor(border_color),
             ..default()
         },
-        Transform {
-            translation: position,
-            scale,
-            ..default()
-        },
     )).id();
+
+    commands.entity(card_entity).insert(Transform::from_translation(position).with_scale(scale));
 
     // Card name
     let name_entity = commands.spawn(
