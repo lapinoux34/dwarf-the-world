@@ -45,8 +45,8 @@ fn main() {
 
     let app_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         logging::log_info("Creating Bevy App...");
+        eprintln!("[DEBUG] About to create App::new()...");
         App::new()
-            .add_plugins(DefaultPlugins)
             .insert_resource(GameResource {
                 state: game_state,
             })
