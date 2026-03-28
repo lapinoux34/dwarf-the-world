@@ -20,6 +20,7 @@ pub fn entry_type_color(entry_type: ZoneType) -> Color {
         ZoneType::Military => Color::rgb(0.4, 0.35, 0.4),
         ZoneType::Production => Color::rgb(0.6, 0.25, 0.1),
         ZoneType::Recruitment => Color::rgb(0.5, 0.35, 0.2),
+        ZoneType::Danger => Color::rgb(0.25, 0.1, 0.08),
         ZoneType::Any => Color::rgb(0.4, 0.4, 0.35),
     }
 }
@@ -33,6 +34,7 @@ pub fn entry_border_color(entry_type: ZoneType) -> Color {
         ZoneType::Military => Color::rgb(0.6, 0.6, 0.65),
         ZoneType::Production => Color::rgb(0.8, 0.35, 0.1),
         ZoneType::Recruitment => Color::rgb(0.6, 0.4, 0.2),
+        ZoneType::Danger => Color::rgb(0.5, 0.15, 0.1),
         ZoneType::Any => Color::rgb(0.5, 0.45, 0.4),
     }
 }
