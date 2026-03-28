@@ -29,6 +29,9 @@ pub fn setup_logging() {
     log_to_file(&log_path, "INFO", webhook_status);
     eprintln!("Logs: .logs/dwarf_the_world.log");
     eprintln!("{}", webhook_status);
+
+    // Send startup ping to Discord so we know the system works
+    send_to_discord("🟢 **Dwarf The World** launched - waiting for game...", "INFO");
 }
 
 pub fn log_error(msg: &str) {
